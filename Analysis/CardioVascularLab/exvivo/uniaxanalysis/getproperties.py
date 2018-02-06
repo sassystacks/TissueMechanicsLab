@@ -1,36 +1,39 @@
 
+'''
+This class inherits from the parsecsv module to extract properties
+in the uniax data. It also converts the force Displacement data into
+Stress and strain.  The program finds a linear region before the point of Failure
+a neohookean fit, and a slope of a tangent line at 15 percent of the strain.
+
+To Do:
+
+-Make 15 percent tangent function
+-Make NeoHookean fit function
+-Convert force/displacement to stress/strain function
+-clean up __init__()
+'''
+
 
 from matplotlib import pyplot as plt
 import pandas as pd
 import numpy as np
-
+from generalformat import parsecsv
 
 class getproperties(object):
 
     def __init__(self, **kwargs):
 
+        #super(getproperties,self).__init__(**kwargs)
         # Read CSV data
-        rawDat = kwargs['directory']
-        step = kwargs['step']
+        self.rawDat = kwargs['directory']
         self.smooth_width = kwargs['smooth_width']
+
+        self.fnames =
         self.pltTitle = self.plotTitle(rawDat)
 
-        #Read csv dimensions and populate list of patient and specimen concantenated
-        df = pd.read_csv(rawDat,skiprows=4)
+        [Force,Displacement] = self.getForceDisplacement()
+        self.dimensions = getTestDims()
 
-        x = df.iloc[:,1].values
-        y = df.iloc[:,2].values
-        x = x[0::step]
-        y = y[0::step]
-        # [x,y] = self.truncData(x,y)
-
-        x = x-x[0]
-        self.x=x[:-2]
-
-
-        self.y = self.moving_average(y)
-
-        #
         indx = self.findFailure() - 1
 
         self.xMax = x[indx]
@@ -40,8 +43,66 @@ class getproperties(object):
 
         [self.xGrad,self.yGrad] = self.findLinear(indx)
 
-    def fitCurve(self, *args):
+    def getForceDisplacement(self,*args):
+        # get the Force and Displacement Data from csv
+        #Read csv dimensions and populate list of patient and specimen concantenated
+        df = pd.read_csv(rawDat,skiprows=self.skip)
+
+        x = df.iloc[:,1].values
+        y = df.iloc[:,2].values
+        x = x[0::step]
+        y = y[0::step]
+        # [x,y] = self.truncData(x,y)
+        x = x-x[0]
+        x=x[:-2]
+
+        y = self.moving_average(y)
+
+        return x,y
+
+    def fitRange(self, *args):
+
+        minRange = args[0]
+        maxRange = args[1]
+
+        fitRange = np.logical_and(self.epsilon > minRange, self.epsilon < maxRange) #Get range to fit (logical array)
+        xFit = self.epsilon[fitRange] #range of strain between min and max range
+        yFit = self.sigma[fitRange] # range of stress for the the same range
+
+        return xFit,yFit
+    def firstDerivative15percent(self, *args):
         pass
+
+    def fitCurve15percent(self, *args):
+        pass
+        #Fits a 2nd order olynomial between 10 an 10 percent strain then finds the linear
+        #tangent from derivative at 15 percent
+        xFit, yFit = self.fitRange(0.10,0.20) #find values in the range
+        coeff = np.polyfit(xFit,yFit,2) #return coeffiecient of line from derivative
+        d_dx = 2*coeff[0]*xFit - coeff[1]
+
+
+        return xFit
+
+    def fitNeoHookean(self, *args):
+        from scipy.optimize import curve_fit
+        #Fit the neohookean model sigman = 2*c*(lamda-1/lamda^2) calls fitRange function
+
+        xFit, yFit = self.fitRange(0.05,0.15)
+        lamda = xFit + 1 #convert strain to stretch
+
+        #Fit the data to the nonlinear curve_fit
+        popt,pcov = curve_fit(neoHookeanCurve,xFit,yFit)
+        yNH = self.neoHookeanCurve(xFit,*popt) #get the values of stress for coresponding parameters
+
+        return popt, xFit, yNH # return the c_0 parameter and the values of fit
+
+    def neoHookeanCurve(self, x, c):
+        #The model to be fit to the Data
+
+        return 2*c*(x-x^-2)
+
+
 
     def calcDerivative(self, *args):
         #Calculates a simple numerical derivative based on a single stepbackward
@@ -118,13 +179,13 @@ class getproperties(object):
 
     def findFailure(self, *args):
 
-
         #start at 10 percent of the data set to avoid noise at beginning of curve
         start = int(len(self.y)/10)
         ydata = self.y[int(start):]
         conv_array = np.convolve(ydata,[-1,0,1])
         zero_crossings = np.where(np.diff(np.sign(conv_array)))[0]
 
+        #Find the zero crossings where maxima occurs in the graph
         for num in zero_crossings:
             chkslope = self.calcDerivative(num+start,self.y,self.x[1])
 
@@ -182,4 +243,8 @@ class getproperties(object):
 
 
 if __name__ == '__main__':
+    args_dict = {
+                'directory' : '/home/richard/MyProjects/TissueMechanicsLab/RawData/cp_Test_Data'
+                'smooth_width': 79}
+
     a = getproperties(directory='/home/richard/MyProjects/Analysis/CardioVascularLab/rawCSVfail/AAA20171003/AAA20171003_LA2L.CSV',step=20,smooth_width=79).visualizeData()
