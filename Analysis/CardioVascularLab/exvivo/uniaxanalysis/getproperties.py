@@ -19,46 +19,83 @@ import pandas as pd
 import numpy as np
 from generalformat import parsecsv
 
-class getproperties(object):
+class getproperties(parsecsv):
 
-    def __init__(self, **kwargs):
+    def __init__(self, fileDimslist, **kwargs):
+        #Inherit from parsecsv to be able to extract data
+        super(getproperties,self).__init__(**kwargs)
 
-        #super(getproperties,self).__init__(**kwargs)
-        # Read CSV data
-        self.rawDat = kwargs['directory']
-        self.smooth_width = kwargs['smooth_width']
+        #These variables are specific to the getproperties() class
+        self.smooth_width = kwargs['smooth_width'] #for smoothing the curve
+        self.pltTitle = 'PlaceHolder' #plot title.... probably replace wit sample
 
-        self.fnames =
-        self.pltTitle = self.plotTitle(rawDat)
+        #Parse fileDimslist for values needed. input format for fileDimslist:
+        # ["Sample_Specimen","Filename","Width","Thickness","G-G"]
+        self.sample = fileDimslist[0]
+        self.fname = fileDimslist[1]
 
-        [Force,Displacement] = self.getForceDisplacement()
-        self.dimensions = getTestDims()
+        #Only needed for a single calculation each
+        width = fileDimslist[3]
+        thickness = fileDimslist[2]
+        gtog = fileDimslist[2]
 
-        indx = self.findFailure() - 1
 
-        self.xMax = x[indx]
-        self.yMax = self.y[indx]
 
-        #[self.xfit,self.yfit] = self.fitCurve(indx)
+        [force,displacement,time] = self.getForceDisplacement() #Get from CSV
+        [displacement,force] = self.reduceData(time,displacement,force) # reduce number of data points
 
-        [self.xGrad,self.yGrad] = self.findLinear(indx)
+        self.strain = self.calcStrain(displacement,gtog) # Get strain
+        self.stress = self.calcStress(force,width,thickness) # Get Stress
+        self.stress = self.movingAverage(self.stress)
+
+        #Index where failure occurs
+        self.failIndx = self.findFailure(self.strain,self.stress) - 1
+
+        #The second order gradient of a gaussian kernel
+        #Shows where graphs deviates and returns to linearity
+        [self.xlinear,self.ylinear] = self.findLinear(displacement,force)
+
+        self.visualizeData(displacement-displacement[0], force)
 
     def getForceDisplacement(self,*args):
         # get the Force and Displacement Data from csv
         #Read csv dimensions and populate list of patient and specimen concantenated
-        df = pd.read_csv(rawDat,skiprows=self.skip)
 
-        x = df.iloc[:,1].values
-        y = df.iloc[:,2].values
+        df =pd.read_csv(self.fname,index_col=False) #CSV to full pandas dataframe
+
+        #Convert dataframe to numpy arrays
+        force = df.loc[:,"Force"].values # extract force from full pandas dataframe
+        displacement = df.loc[:,"Displacement"].values # extract Displacement
+        time = df.loc[:,"Time"].values # extract Displacement
+
+        return force,displacement,time
+
+    def reduceData(self, time, x, y):
+        #Reduce the number of data points by a certain step value
+        targetVal = 0.3
+        step = int(targetVal/time[1]) #divide the target time by first value in time
+        print(step)
+        #Reduce the data in both x and y
         x = x[0::step]
         y = y[0::step]
-        # [x,y] = self.truncData(x,y)
-        x = x-x[0]
-        x=x[:-2]
-
-        y = self.moving_average(y)
 
         return x,y
+
+    def calcStress(self, force, width, thickness):
+
+        stress = force/(width*thickness)
+
+        return stress
+
+    def calcStrain(self, disp, g_g):
+
+        disp = disp-disp[0]# Zero the displacement for the first measurement
+        strain = disp/g_g #engineering strain
+
+        strain=strain[1:-1] #Reduce the points by 1 on either side to keep consistent
+                            #vector size with stress after moving average
+
+        return strain
 
     def fitRange(self, *args):
 
@@ -102,8 +139,6 @@ class getproperties(object):
 
         return 2*c*(x-x^-2)
 
-
-
     def calcDerivative(self, *args):
         #Calculates a simple numerical derivative based on a single stepbackward
         indx = args[0]-1
@@ -114,17 +149,18 @@ class getproperties(object):
 
         return der
 
-    def findLinear(self, *args):
+    def findLinear(self,disp,force):
 
         # create convolution kernel for calculating
         # the smoothed second order derivative
-        x = self.x[:args[0]]
-        y = self.y[:args[0]]
 
-        x = self.x
-        #y = self.y[:args[0]]
-        y = self.y
+        # indx = np.argmax(force)
+        # x = disp[:indx] - disp[0]
+        # y = force[:indx]
 
+        indx = np.argmax(self.stress)
+        x = self.strain[:indx]
+        y = self.stress[:indx]
         smooth_width = self.smooth_width
         x1 = np.linspace(-3,3,smooth_width)
         norm = np.sum(np.exp(-x1**2)) * (x1[1]-x1[0]) # ad hoc normalization
@@ -141,6 +177,7 @@ class getproperties(object):
 
         for num in xrange(0,len(zero_crossings)):
 
+
             if  conv_array[zero_crossings[num]-1] < 0 and x[zero_crossings[num]] > 0.2:
                 #set the minimum point in the range as the first maxima
                 minrange = zero_crossings[num]
@@ -148,13 +185,15 @@ class getproperties(object):
                 maxrange = zero_crossings[num+1]
 
                 a = self.calcDerivative(minrange,y_conv,x[1])
-                print "{} : {}".format(self.pltTitle,a)
+                print "{} : {}".format(self.sample,a)
                 if a > .01:
                     break
 
         # calculate polynomial
         x_fit = x[minrange:maxrange]
         y_fit = y[minrange:maxrange]
+        print(minrange)
+        print(maxrange)
         z = np.polyfit(x_fit, y_fit, 1)
         f = np.poly1d(z)
 
@@ -165,37 +204,36 @@ class getproperties(object):
 
         return x, y_conv
 
-    def plotTitle(self, *args):
+    def plotTitle(self, nameparts):
 
         import os
         import re
 
-        fullpath = args[0]
-        a = os.path.basename(fullpath)
+        a = os.path.basename(nameparts)
         a = re.split(r'[ ,_]',a)
         title = a[0] + "_" + a[1]
 
         return title
 
-    def findFailure(self, *args):
+    def findFailure(self, x, y):
 
         #start at 10 percent of the data set to avoid noise at beginning of curve
-        start = int(len(self.y)/10)
-        ydata = self.y[int(start):]
+        start = int(len(y)/10)
+        ydata = y[int(start):]
         conv_array = np.convolve(ydata,[-1,0,1])
         zero_crossings = np.where(np.diff(np.sign(conv_array)))[0]
 
         #Find the zero crossings where maxima occurs in the graph
         for num in zero_crossings:
-            chkslope = self.calcDerivative(num+start,self.y,self.x[1])
+            chkslope = self.calcDerivative(num+start,y,x[1])
 
             if abs(chkslope) > 0.1:
-                print(num)
+                print "broke loop at index .... "  + str(num)
                 break
 
         return num + start
 
-    def moving_average(self, a, n=3):
+    def movingAverage(self, a, n=3):
         ret = np.cumsum(a, dtype=float)
         ret[n:] = ret[n:] - ret[:-n]
         return ret[n - 1:] / n
@@ -209,27 +247,23 @@ class getproperties(object):
         yTrunc = ydata[:maxindx-1]
         return xTrunc, yTrunc
 
-    def visualizeData(self, *args):
+    def visualizeData(self, disp, force, *args):
 
-        #plt.plot(x,y_conv, label = "second deriv")
-        # plt.plot(x, y_n,"o", label = "noisy data")
-        fig = plt.figure(1)
-        plt.plot(self.x, self.y, label="raw")
-        plt.plot(self.xMax, self.yMax, "o", label="Failure")
-        plt.plot(self.xGrad, self.yGrad, label="FitCurve")
-        plt.plot(self.xline, self.yline, label="FitCurve")
+        #Creates a plot based on the analysis
+        #Main plotting features
+        fig = plt.figure(1) #initialize figure
+        plt.plot(self.strain, self.stress, label="raw") #plot main data set
+        plt.plot(self.strain[self.failIndx], self.stress[self.failIndx], "o",label="Fail") #plot main data set
+        #plt.plot(disp, force, label="raw") #plot main data set
+        #plt.plot(self.xlinear, self.ylinear, label="FitCurve") #plots the gradient curve right now
+        plt.plot(self.xline, self.yline, label="linearStrain") #plots linear part of curve
+
 
         plt.title(self.pltTitle)
-        #plt.plot(x, x, "0.3", label = "linear data")
-        plt.hlines([-0.5],min(self.x),max(self.x),'m')
-        plt.hlines([0],min(self.x),max(self.x),'m')
-        plt.vlines([0.5],-0.5,max(self.y),'m')
-        # plt.axvspan(0,4, color="y", alpha=0.2)
-        # plt.axvspan(6,14, color="y", alpha=0.2)
-        # plt.axhspan(-1,1, color="b", alpha=0.2)
-        #plt.vlines([0, 4, 6],-10, 10)
-        # plt.xlim(-2.5,12)
-        # plt.ylim(-2.5,6)
+        # plt.hlines([-0.5],min(self.x),max(self.x),'m')
+        # plt.hlines([0],min(self.x),max(self.x),'m')
+        # plt.vlines([0.5],-0.5,max(self.y),'m')
+
         plt.legend(loc=0)
 
         plt.show()
@@ -243,8 +277,21 @@ class getproperties(object):
 
 
 if __name__ == '__main__':
-    args_dict = {
-                'directory' : '/home/richard/MyProjects/TissueMechanicsLab/RawData/cp_Test_Data'
-                'smooth_width': 79}
 
-    a = getproperties(directory='/home/richard/MyProjects/Analysis/CardioVascularLab/rawCSVfail/AAA20171003/AAA20171003_LA2L.CSV',step=20,smooth_width=79).visualizeData()
+    testList =  ['RSAA20160621_U1',
+                '/home/richard/MyProjects/TissueMechanicsLab/CleanSheets/RSAA20160621_U1.CSV',
+                4.62, 2.365, 5.0]
+    #this is a sample to test outputs
+    args_dict = {
+                'dimsfile': '/home/richard/MyProjects/TissueMechanicsLab/RawData/Allfiles.csv',
+                'topdir': '/home/richard/MyProjects/TissueMechanicsLab/CleanSheets',
+                'writeto': 'Test','identifier': '_Fail','skiprows': 5, 'ignore': '.tdf',
+                'smooth_width': 59, 'project': 'AAA',',step': 20}
+    a = getproperties(fileDimslist = testList,**args_dict)
+    # d = a.getMatchingData('/home/richard/MyProjects/TissueMechanicsLab/CleanSheets',
+    #                     '/home/richard/MyProjects/TissueMechanicsLab/RawData/Allfiles.csv')
+    # args_dict = {
+    #             'directory' : '/home/richard/MyProjects/TissueMechanicsLab/RawData/cp_Test_Data'
+    #             }
+    #
+    # a = getproperties(directory='/home/richard/MyProjects/Analysis/CardioVascularLab/rawCSVfail/AAA20171003/AAA20171003_LA2L.CSV',smooth_width=79).visualizeData()

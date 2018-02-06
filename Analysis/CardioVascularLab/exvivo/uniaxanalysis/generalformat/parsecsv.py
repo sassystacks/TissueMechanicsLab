@@ -25,13 +25,13 @@ class parsecsv(object):
         self.topDir = kwargs['topdir']
         self.identifier = kwargs['identifier']
         self.skiprows = kwargs['skiprows']
-        self.dimsdir = kwargs['dimsdir']
+        self.dimsfile = kwargs['dimsfile']
 
-        if 'ignore' in kwargs:
+        if 'ignore' in kwargs: # Files to ignore
             self.ignore = kwargs['ignore']
-        if 'writeto' in kwargs:
+        if 'writeto' in kwargs: #Directory to write
             self.writeDir = kwargs['writeto']
-        if 'project' in kwargs:
+        if 'project' in kwargs: # Project type
             self.project = kwargs['project']
 
         self.sampleNames = self.makeSearchNames() #get specimen and sample names
@@ -48,12 +48,11 @@ class parsecsv(object):
 
         return sampleNames
 
-    def getTestDims(self,*args):
+    def getTestDims(self, dimsFile):
         #get width thickness and G-G from csv file
         #uses the readDimsFile function to parse a pandas dataframe
-        dimsFile =args[0]
-        fullDF= pd.read_csv(dimsFile)
 
+        fullDF= pd.read_csv(dimsFile) #get a pandas dataframe for full csv file
 
         dims = fullDF[["Sample","Specimen","Width","Thickness","G-G"]] #These sample values are returned
         dims = dims.values.tolist() #Converst dataframe to list
@@ -79,17 +78,14 @@ class parsecsv(object):
 
         return specimendata
 
-    def cleanCsv(self, *args):
+    def cleanCsv(self, fnamelist, root):
         import csv
         from itertools import islice
 
-        #Takes a list of files, finds the text files and creates a .csv files
-        #in the directory
+        #Takes a list of files, finds the text files and replicates the data as
+        #a csv file specified in the directory specified in root. The new names
+        #is then <sample>_<specimen>.CSV in root
 
-        #Calls the get Fnames function to get the filenames list
-        fnamelist = args[0]
-
-        root = '/home/richard/MyProjects/TissueMechanicsLab/CleanSheets'
         try:
             os.mkdir(root)
         except OSError:
@@ -103,41 +99,44 @@ class parsecsv(object):
             with open(f[0]) as inTxt, open(fullFname,"w") as outCsv:
                 r = csv.reader(islice(inTxt, 5,None))
                 outCsv = csv.writer(outCsv)
-                outCsv.writerow(["time","Force","Displacement"])
+                outCsv.writerow(["time","Displacement","Force"])
                 outCsv.writerows(r)
             newfNamelist.append([fullFname,f[1]])
 
         #return newfNamelist took out this return.... might want to put back
         #returns the filenames and sample_specimen matching it
 
-
     def readDimsFile(self, *args):
         #This should be changed to a cached class only if using
         #Read csv dimensions and populate list of patient and specimen concantenated
 
-        df = pd.read_csv(self.dimsdir)
+        df = pd.read_csv(self.dimsfile)
 
         return df #Return pandas dataframe
 
-    def findFile(self, *args):
+    def findFile(self, fileTofind, topDir,*args):
+        #Finds files matching a substring. Recursively searches directory to find
+        #The first file that matches while ignoring the ignore specified in __init__()
+        #pass
+        #fileTofind : takes a substring to find matching files in the topDir
+        #topDir : point to the top directory to search Recursively from
 
-        fileTofind = args[0] #takes a substring to find matching files in the topDir
-        topDir = args[1] #point to a directory to search
 
         for root,dirs,fname in os.walk(topDir):
             for f in fname:
-                try:
+                try: #This will
                     if fileTofind in f and self.identifier in f and not f.endswith(self.ignore):
 
                         return os.path.join(root,f),fileTofind
                         break
 
-                    elif args[2] and fileTofind in f:
+                    elif args[0] and fileTofind in f:
 
                         return os.path.join(root,f),fileTofind
                         break
 
-                except TypeError:
+                except TypeError: #None type causes error in the above if statement so
+                                  #this will avoid that problem
                     if fileTofind in f:
 
                         return os.path.join(root,f),fileTofind
@@ -153,13 +152,11 @@ class parsecsv(object):
 
         return fnames #return list of full file names with root attached
 
-    def getMatchingData(self, *args):
+    def getMatchingData(self, dimsfile, topDir):
         #uses the dimensions file specifed by user to obtain dimensions
         #use a clean directory with all outlier files removed
 
-        topDir = args[0] #Specify a directory to find files matching sample and specimen
-        dimsDir = args[1]
-        dimslist = self.getTestDims(dimsDir) #Get the dimesions of the sample and specimen
+        dimslist = self.getTestDims(dimsfile) #Get the dimesions of the sample and specimen
 
         fullList = []
         for dims in dimslist:
@@ -175,10 +172,12 @@ class parsecsv(object):
 if __name__ == '__main__':
     #this is a sample to test outputs
     args_dict = {
-                'dimsdir': '/home/richard/MyProjects/TissueMechanicsLab/RawData/Allfiles.csv',
+                'dimsfile': '/home/richard/MyProjects/TissueMechanicsLab/RawData/Allfiles.csv',
                 'topdir': '/home/richard/MyProjects/TissueMechanicsLab/RawData/cp_Test_Data',
                 'writeto': 'Test','identifier': '_Fail','skiprows': 5, 'ignore': '.tdf', 'project': 'AAA'}
     a = parsecsv(**args_dict )
-    d = a.getMatchingData('/home/richard/MyProjects/TissueMechanicsLab/CleanSheets',
-                        '/home/richard/MyProjects/TissueMechanicsLab/RawData/Allfiles.csv')
-    print(len(d))
+    d = a.getMatchingData(
+                            '/home/richard/MyProjects/TissueMechanicsLab/RawData/Allfiles.csv',
+                            '/home/richard/MyProjects/TissueMechanicsLab/CleanSheets'
+                        )
+    print(d)
