@@ -9,25 +9,23 @@ To Do:
 
 -Make 15 percent tangent function
 -Make NeoHookean fit function
--Convert force/displacement to stress/strain function
--clean up __init__()
+-vary targetVal in reduceData()
 '''
 
 
 from matplotlib import pyplot as plt
 import pandas as pd
 import numpy as np
-from generalformat import parsecsv
+import parsecsv #homemade module
 
-class getproperties(parsecsv):
+class getproperties(object):
 
     def __init__(self, fileDimslist, **kwargs):
         #Inherit from parsecsv to be able to extract data
-        super(getproperties,self).__init__(**kwargs)
+        #super(getproperties,self).__init__(**kwargs)
 
         #These variables are specific to the getproperties() class
         self.smooth_width = kwargs['smooth_width'] #for smoothing the curve
-        self.pltTitle = 'PlaceHolder' #plot title.... probably replace wit sample
 
         #Parse fileDimslist for values needed. input format for fileDimslist:
         # ["Sample_Specimen","Filename","Width","Thickness","G-G"]
@@ -74,7 +72,7 @@ class getproperties(parsecsv):
         #Reduce the number of data points by a certain step value
         targetVal = 0.3
         step = int(targetVal/time[1]) #divide the target time by first value in time
-        print(step)
+        print "The data have been reduced by ....", step
         #Reduce the data in both x and y
         x = x[0::step]
         y = y[0::step]
@@ -154,13 +152,10 @@ class getproperties(parsecsv):
         # create convolution kernel for calculating
         # the smoothed second order derivative
 
-        # indx = np.argmax(force)
-        # x = disp[:indx] - disp[0]
-        # y = force[:indx]
-
         indx = np.argmax(self.stress)
         x = self.strain[:indx]
         y = self.stress[:indx]
+
         smooth_width = self.smooth_width
         x1 = np.linspace(-3,3,smooth_width)
         norm = np.sum(np.exp(-x1**2)) * (x1[1]-x1[0]) # ad hoc normalization
@@ -184,16 +179,20 @@ class getproperties(parsecsv):
                 #set the minimum point in the range as the first minima
                 maxrange = zero_crossings[num+1]
 
-                a = self.calcDerivative(minrange,y_conv,x[1])
-                print "{} : {}".format(self.sample,a)
-                if a > .01:
+                a = self.calcDerivative(minrange,y_conv,x[1]) #Find the slope of the line at the local maxima
+
+                if a > .01: #if the slope is greater than this value break the loop
+                    stressAtstart = self.stress[zero_crossings[num]] #get the stress where the loop broke
+                    stressAtstart = np.around(stressAtstart,3)
+                    print "The derivate for {} was {} at {} MPa".format(self.sample,np.around(a,3),stressAtstart) #print the stress at that point
                     break
 
         # calculate polynomial
         x_fit = x[minrange:maxrange]
         y_fit = y[minrange:maxrange]
-        print(minrange)
-        print(maxrange)
+        print "Linear region starts at ... {} MPa".format(np.around(self.stress[minrange],3))
+        print "Linear region ends at   ... {} MPa".format(np.around(self.stress[maxrange],3))
+        print "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
         z = np.polyfit(x_fit, y_fit, 1)
         f = np.poly1d(z)
 
@@ -259,7 +258,7 @@ class getproperties(parsecsv):
         plt.plot(self.xline, self.yline, label="linearStrain") #plots linear part of curve
 
 
-        plt.title(self.pltTitle)
+        plt.title(self.sample)
         # plt.hlines([-0.5],min(self.x),max(self.x),'m')
         # plt.hlines([0],min(self.x),max(self.x),'m')
         # plt.vlines([0.5],-0.5,max(self.y),'m')

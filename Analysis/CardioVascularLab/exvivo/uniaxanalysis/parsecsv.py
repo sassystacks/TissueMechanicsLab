@@ -22,17 +22,20 @@ class parsecsv(object):
 
     def __init__(self, **kwargs):
 
+        self.dimsFile = kwargs['dimsfile']
         self.topDir = kwargs['topdir']
-        self.identifier = kwargs['identifier']
-        self.skiprows = kwargs['skiprows']
-        self.dimsfile = kwargs['dimsfile']
 
+        self.identifier = kwargs.get('identifier',None)
         if 'ignore' in kwargs: # Files to ignore
             self.ignore = kwargs['ignore']
         if 'writeto' in kwargs: #Directory to write
             self.writeDir = kwargs['writeto']
         if 'project' in kwargs: # Project type
             self.project = kwargs['project']
+        if 'identifier' in kwargs:
+            self.identifier = kwargs['identifier']
+        if 'skiprows' in kwargs:
+            self.skiprows = kwargs['skiprows']
 
         self.sampleNames = self.makeSearchNames() #get specimen and sample names
 
@@ -110,7 +113,7 @@ class parsecsv(object):
         #This should be changed to a cached class only if using
         #Read csv dimensions and populate list of patient and specimen concantenated
 
-        df = pd.read_csv(self.dimsfile)
+        df = pd.read_csv(self.dimsFile)
 
         return df #Return pandas dataframe
 

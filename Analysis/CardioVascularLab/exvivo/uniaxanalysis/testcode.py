@@ -1,14 +1,16 @@
 import pandas as pd
 from numpy import genfromtxt
-#
-testList = ['RSAA20160621_U1',
-            '/home/richard/MyProjects/TissueMechanicsLab/CleanSheets/RSAA20160621_U1.CSV',
-            4.62, 2.365, 5.0]
-#Pandas method
-df =pd.read_csv(testList[1],index_col=False)
-#
-force = df.loc[:,"Force"].values
-displacement = df.loc[:,"Displacement"]
+from getproperties import getproperties
+import generalformat.parsecsv
 
-#data = genfromtxt(testList[1],delimiter=',')
-print(force)
+#Dictionary to pass to parsecsv for obtaining dta on specimen
+args_dict = {
+            'dimsfile':'/home/richard/MyProjects/TissueMechanicsLab/RawData/Allfiles.csv',
+            'topdir':'/home/richard/MyProjects/TissueMechanicsLab/CleanSheets'
+            }
+inst =  generalformat.parsecsv(**args_dict)
+#Create the list of specimens to be tested from Dimensions file
+d =inst.getMatchingData(inst.dimsFile,inst.topDir)
+
+for item in d:
+    analysis = getproperties(fileDimslist = item,smooth_width=59)
