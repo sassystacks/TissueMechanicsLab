@@ -1,8 +1,8 @@
-from generalformat import parsecsv
+from parsecsv import parsecsv
 
 
 
-class gensamplesheet(parsecsv):
+class makeanalysis(parsecsv):
 
     def __init__(self,**kwargs):
         super(gensamplesheet,self).__init__(**kwargs)

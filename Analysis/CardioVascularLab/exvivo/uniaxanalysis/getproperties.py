@@ -10,6 +10,7 @@ To Do:
 -Make 15 percent tangent function
 -Make NeoHookean fit function
 -vary targetVal in reduceData()
+-Plot Fig function
 '''
 
 
@@ -26,6 +27,7 @@ class getproperties(object):
 
         #These variables are specific to the getproperties() class
         self.smooth_width = kwargs['smooth_width'] #for smoothing the curve
+        self.timeStep = kwargs.get("timestep",.2)
 
         #Parse fileDimslist for values needed. input format for fileDimslist:
         # ["Sample_Specimen","Filename","Width","Thickness","G-G"]
@@ -53,7 +55,7 @@ class getproperties(object):
         #Shows where graphs deviates and returns to linearity
         [self.xlinear,self.ylinear] = self.findLinear(displacement,force)
 
-        self.visualizeData(displacement-displacement[0], force)
+        self.visualizeData(displacement-displacement[0],force)#Just for comparison to raw data
 
     def getForceDisplacement(self,*args):
         # get the Force and Displacement Data from csv
@@ -69,8 +71,10 @@ class getproperties(object):
         return force,displacement,time
 
     def reduceData(self, time, x, y):
+
+        x,y  = self.truncData(x,y)
         #Reduce the number of data points by a certain step value
-        targetVal = 0.3
+        targetVal = self.timeStep
         step = int(targetVal/time[1]) #divide the target time by first value in time
         print "The data have been reduced by ....", step
         #Reduce the data in both x and y
@@ -237,10 +241,8 @@ class getproperties(object):
         ret[n:] = ret[n:] - ret[:-n]
         return ret[n - 1:] / n
 
-    def truncData(self, *args):
+    def truncData(self, xdata,ydata):
 
-        xdata = args[0]
-        ydata = args[1]
         maxindx = np.argmax(ydata)
         xTrunc = xdata[:maxindx-1]
         yTrunc = ydata[:maxindx-1]
@@ -265,7 +267,10 @@ class getproperties(object):
 
         plt.legend(loc=0)
 
-        plt.show()
+        return fig
+
+    def plotFig(self):
+        pass
 
     def returnXYData(self,*args):
 

@@ -1,1 +1,1 @@
-from uniaxanalysis import generalformat
+from uniaxanalysis import parsecsv

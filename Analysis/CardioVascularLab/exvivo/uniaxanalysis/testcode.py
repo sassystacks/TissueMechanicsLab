@@ -14,3 +14,9 @@ d =inst.getMatchingData(inst.dimsFile,inst.topDir)
 
 for item in d:
     analysis = getproperties(fileDimslist = item,smooth_width=59)
+
+dictionary = {}
+
+data = dictionary.get("message", "Fuck")
+
+print(data)  # Hello, World!
