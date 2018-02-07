@@ -1,84 +1,81 @@
-# The code for changing pages was derived from: http://stackoverflow.com/questions/7546050/switch-between-two-frames-in-tkinter
-# License: http://creativecommons.org/licenses/by-sa/3.0/
-
-import matplotlib
-matplotlib.use("TkAgg")
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
-from matplotlib.figure import Figure
-
-import Tkinter as tk
+from Tkinter import *
 import ttk
-from tkFileDialog   import askopenfilename,askdirectory
+import uniaxanalysis.getproperties as up
+from matplotlib import pyplot as plt
 
-LARGE_FONT= ("Verdana", 12)
+class StartPage:
 
-
-class SeaofBTCapp(tk.Tk):
-
-    def __init__(self, *args, **kwargs):
-
-        print "Main class started"
-        tk.Tk.__init__(self, *args, **kwargs)
-
-        tk.Tk.wm_title(self, "Sea of BTC client")
-
-
-
-        container = tk.Frame(self)
-        container.pack(side="top", fill="both", expand = True)
-        container.grid_rowconfigure(0, weight=1)
-        container.grid_columnconfigure(0, weight=1)
-
-        self.frames = {}
-
-        frame = StartPage(container,self)
-        self.frames[StartPage] = frame
-        frame.grid(row=0, column=0, sticky="nsew")
-        # for F in (StartPage, PageOne, PageTwo, PageThree):
-        #
-        #     frame = F(container, self)
-        #
-        #     self.frames[F] = frame
-        #
-        #     frame.grid(row=0, column=0, sticky="nsew")
-
-        self.show_frame(StartPage)
-
-    def show_frame(self, cont):
-
-        frame = self.frames[cont]
-        frame.tkraise()
-
-class StartPage(tk.Frame):
-
-    def __init__(self, parent, controller):
+    def __init__(self, master):
         print "Start Page class started"
-        tk.Frame.__init__(self,parent)
+
+        self.master = master
+        self.buttonsdict = {}
+        self.fig = plt.figure(1)
 
         #These attributes are passed to parsecsv
         self.fname = '/home/richard/MyProjects/TissueMechanicsLab/RawData/Allfiles.csv'
         self.dirname = '/home/richard/MyProjects/TissueMechanicsLab/CleanSheets'
 
-        label = tk.Label(self, text="Start Page", font=LARGE_FONT)
-        label.pack(pady=10,padx=10)
+        #~~~~~~~~~~~~~~~~~~~~~ Initialize Frames ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-        button1 = ttk.Button(self, text="Dimensions File",
+        self.frame1 = Frame(self.master,borderwidth =5,relief='raised')
+        self.frame1.grid(row=0,column=0,sticky='ew')
+
+        self.frame2 = Frame(self.master,borderwidth =5,relief='raised',height=640)
+        self.frame2.grid(row=1,column=0,sticky='N',ipady=20)
+
+        self.frame3 = Frame(self.master,borderwidth =5,relief='raised')
+        self.frame3.grid(row=2,column=0,sticky='ew',ipady=20)
+
+        self.frame4 = Frame(self.master,borderwidth =5,relief='raised')
+        self.frame4.grid(row=1,column=1,sticky='ew',ipady=20)
+        '''
+        ~~~~~~~~~~~~~~~~~~~~~~  Frame 1 Widgets  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        '''
+        label = Label(self.frame1, text="Start Page")
+        label.grid(row=0,column=0)
+
+        button1 = Button(self.frame1, text="Dimensions File",
                                 command = self.chooseDims)
-        button1.pack()
+        button1.grid(row=1,column=0)
 
-        button2 = ttk.Button(self, text="Top Directory",
+        button2 = Button(self.frame1, text="Top Directory",
                                 command = self.chooseDir)
-        button2.pack()
+        button2.grid(row=2,column=0)
 
-        button3 = ttk.Button(self, text="Run SetupData",
+        button3 = Button(self.frame1, text="Run SetupData",
                                 command = self.setupData)
-        button3.pack()
+        button3.grid(row=3,column=0)
 
-        # button = ttk.Button(self, text="Visit Page 1",
-        #                     command=lambda: controller.show_frame(PageOne))
-        # button.pack()
+        '''
+        ~~~~~~~~~~~~~~~~~~~~~~  Frame 3 Widgets  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        '''
+        button4 = Button(self.frame3, text="Good", bg='green',
+                                command = self.stageDims)
+        button4.grid(row=0,column=0,sticky='w')
 
+        changeLabel = Label(self.frame3,text="Properties to Change")
+        changeLabel.grid(row=0,column=1)
 
+        button5 = Button(self.frame3, text="Ultimate Stress",
+                                command = self.editProp)
+        button5.grid(row=1,column=1)
+
+        button5 = Button(self.frame3, text="Linear Stiffness",
+                                command = self.editProp)
+        button5.grid(row=2,column=1)
+
+        '''
+        ~~~~~~~~~~~~~~~  close program with escape key  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        '''
+        self.master.bind('<Escape>', lambda e: self.master.destroy())
+
+    def stageDims(self):
+        pass
+
+    def editProp(self):
+        pass
+        
     def chooseDims(self):
 
         self.fname = askopenfilename()
@@ -92,7 +89,8 @@ class StartPage(tk.Frame):
         #Dictionary to pass to parsecsv for obtaining dta on specimen
         args_dict = {
                     'dimsfile':self.fname,
-                    'topdir':self.dirname
+                    'topdir':self.dirname,
+                    'timestep': 0.15
                     }
         inst =  uniaxanalysis.parsecsv(**args_dict)
         #Create the list of specimens to be tested from Dimensions file
@@ -105,10 +103,10 @@ class StartPage(tk.Frame):
         import math
         buttonnames = [name[0] for name in self.sampleList]
 
-        sqr = math.sqrt(len(buttonnames))
-        sqr = int(math.ceil(sqr))
-
-        padlist = [(i,j) for i in range(sqr) for j in range(sqr)]
+        #Make 3 columns of buttons
+        row = math.ceil(len(buttonnames)/3)
+        col = 3
+        padlist = [(i,j) for i in range(int(row)) for j in range(col)]
         diff = len(padlist) - len(buttonnames)
 
         if diff > 0:
@@ -116,75 +114,42 @@ class StartPage(tk.Frame):
 
         fullList = zip(buttonnames,padlist)
 
+
         for name, indx in fullList:
-            ttk.Button(self,text=name).pack()
+            self.buttonsdict[name] = Button(self.frame2,text=name)
+            self.buttonsdict[name]['command'] = lambda sample = name: self.getGraph(sample)
+            self.buttonsdict[name].grid(row=indx[0],column=indx[1])
+
+    def getGraph(self,samplename):
+        self.fig.clear()
+        #Iterate through sample list to find matching sample
+        for item in self.sampleList:
+
+            if samplename == item[0]:
+                self.fig= up(fileDimslist = item,smooth_width=59).visualizeData(1,2)# Call uniaxanalysis.properties()
+                break
+        else:
+            print "Couldn't find the file"
+
+        self.plotGraph()
+        print(self.fig)
 
 
+    def plotGraph(self):
+        from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
-
-
-
-class PageOne(tk.Frame):
-
-    def __init__(self, parent, controller):
-        print "Start Page 1 class started"
-        tk.Frame.__init__(self, parent)
-        label = tk.Label(self, text="Page One!!!", font=LARGE_FONT)
-        label.pack(pady=10,padx=10)
-
-        button1 = ttk.Button(self, text="Back to Home",
-                            command=lambda: controller.show_frame(StartPage))
-        button1.pack()
-
-        button2 = ttk.Button(self, text="Page Two",
-                            command=lambda: controller.show_frame(PageTwo))
-        button2.pack()
-
-
-class PageTwo(tk.Frame):
-
-    def __init__(self, parent, controller):
-        print "Start Page 2 class started"
-        tk.Frame.__init__(self, parent)
-        label = tk.Label(self, text="Page Two!!!", font=LARGE_FONT)
-        label.pack(pady=10,padx=10)
-
-        button1 = ttk.Button(self, text="Back to Home",
-                            command=lambda: controller.show_frame(StartPage))
-        button1.pack()
-
-        button2 = ttk.Button(self, text="Page One",
-                            command=lambda: controller.show_frame(PageOne))
-        button2.pack()
-
-
-class PageThree(tk.Frame):
-
-    def __init__(self, parent, controller):
-        tk.Frame.__init__(self, parent)
-        label = tk.Label(self, text="Graph Page!", font=LARGE_FONT)
-        label.pack(pady=10,padx=10)
-
-        button1 = ttk.Button(self, text="Back to Home",
-                            command=lambda: controller.show_frame(StartPage))
-        button1.pack()
-
-        f = Figure(figsize=(5,5), dpi=100)
-        a = f.add_subplot(111)
-        a.plot([1,2,3,4,5,6,7,8],[5,6,1,3,8,9,3,5])
-        print "This started"
-
-
-
-        canvas = FigureCanvasTkAgg(f, self)
+        canvas = FigureCanvasTkAgg(self.fig, self.frame4)
         canvas.show()
-        canvas.get_tk_widget().pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
-
-        toolbar = NavigationToolbar2TkAgg(canvas, self)
-        toolbar.update()
-        canvas._tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+        canvas.get_tk_widget().grid(row=0, column=0)
 
 
+def main():
 
-app = SeaofBTCapp()
-app.mainloop()
+    root = Tk()
+    mainApp = StartPage(root)
+    root.attributes('-fullscreen',True)
+    # root.geometry("500x500")
+    root.mainloop()
+
+if __name__ == '__main__':
+    main()

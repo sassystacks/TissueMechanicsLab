@@ -11,6 +11,9 @@ To Do:
 -Make NeoHookean fit function
 -vary targetVal in reduceData()
 -Plot Fig function
+
+Notes:
+-Turned off print
 '''
 
 
