@@ -75,7 +75,7 @@ class StartPage:
 
     def editProp(self):
         pass
-        
+
     def chooseDims(self):
 
         self.fname = askopenfilename()
@@ -90,7 +90,8 @@ class StartPage:
         args_dict = {
                     'dimsfile':self.fname,
                     'topdir':self.dirname,
-                    'timestep': 0.15
+                    'timestep': 0.05
+
                     }
         inst =  uniaxanalysis.parsecsv(**args_dict)
         #Create the list of specimens to be tested from Dimensions file

@@ -29,7 +29,8 @@ class getproperties(object):
         #super(getproperties,self).__init__(**kwargs)
 
         #These variables are specific to the getproperties() class
-        self.smooth_width = kwargs['smooth_width'] #for smoothing the curve
+        self.smooth_width = kwargs.get('smooth_width',101)#for smoothing the curve
+        self.chkderivative = kwargs.get('chkderivate',.05 )
         self.timeStep = kwargs.get("timestep",.2)
 
         #Parse fileDimslist for values needed. input format for fileDimslist:
@@ -233,7 +234,7 @@ class getproperties(object):
         for num in zero_crossings:
             chkslope = self.calcDerivative(num+start,y,x[1])
 
-            if abs(chkslope) > 0.1:
+            if abs(chkslope) > self.chkderivative:
                 print "broke loop at index .... "  + str(num)
                 break
 
@@ -259,7 +260,7 @@ class getproperties(object):
         plt.plot(self.strain, self.stress, label="raw") #plot main data set
         plt.plot(self.strain[self.failIndx], self.stress[self.failIndx], "o",label="Fail") #plot main data set
         #plt.plot(disp, force, label="raw") #plot main data set
-        #plt.plot(self.xlinear, self.ylinear, label="FitCurve") #plots the gradient curve right now
+        plt.plot(self.xlinear, self.ylinear, label="FitCurve") #plots the gradient curve right now
         plt.plot(self.xline, self.yline, label="linearStrain") #plots linear part of curve
 
 
