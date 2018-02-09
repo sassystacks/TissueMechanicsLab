@@ -30,7 +30,7 @@ class getproperties(object):
 
         #These variables are specific to the getproperties() class
         self.smooth_width = kwargs.get('smooth_width',101)#for smoothing the curve
-        self.chkderivative = kwargs.get('chkderivate',.05)
+        self.chkderivative = kwargs.get('chkderivate',.05 )
         self.timeStep = kwargs.get("timestep",.2)
 
         #Parse fileDimslist for values needed. input format for fileDimslist:
