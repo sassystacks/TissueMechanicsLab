@@ -1,42 +1,59 @@
-from Tkinter import *
-import tkMessageBox
-import ttk
-from tkFileDialog import *
+from tkinter import *
+from tkinter import messagebox, ttk, filedialog
+# from tkFileDialog import *
 import uniaxanalysis.getproperties as getprops
 from uniaxanalysis.plotdata import DataPlotter
 from uniaxanalysis.saveproperties import write_props_csv
 
 from matplotlib import pyplot as plt
 
+import time
+
 '''
 The GUI for uniax data analysis of soft tissue.
 
 inputs:
-    - Dimensions file - a file that is formated with the sample name, width, thickness and grip to grip
-                        distance
-    - directory - Folder with raw uniax data files in csv format
+    - Dimensions file - a file with format: sample name, width, thickness and initial distance
+    - directory - Folder with raw uniax data files in csv format with format: time, distance, force
 
 To Do:
     - control when line for manual control shows up
-    - work out bug in the 2nd order gaussian
+    - test rdp for finding linear region - done (check implementation)
+    - fix point picking on plot so that can work in desceding order of x value - done
+    - tick boxes for properties
+Bugs:
+    - work out bug in the 2nd order gaussian - done
     - work out bug in the display for automatic linear find
-    - test rdp for finding linear region
-    - fix point picking on plot so that can work in desceding order of x value
+    - destroy instance of toolbar on graph create
 '''
-
 
 class StartPage:
 
     def __init__(self, master):
-        print "Start Page class started"
+        # print "Start Page class started"
+
+        # Some properties that Rubab and Mohammaded complained soooooooooo much
+        # to get..... jesus Muba
+        self.straintype = 'engineering' # can change to engineering
+        self.stresstype = 'cauchy' # can change to cauchy
 
         self.master = master
         self.buttonsdict = {}
         self.fig = plt.figure(1)
 
-        self.fname = '/home/richard/Documents/School/Research/Uniax/SampleDimensions/AAAHealthy50M_dims/dimensions.csv'
-        self.dirname = '/home/richard//Documents/School/Research/Uniax/RawFailFiles/AAAHealthy50M_FailFiles/'
-        self.fnameOut = '/home/richard//Documents/School/Research/Uniax/CompletedAnalysis/AAAHealthy50M_Analysis.csv'
+        # self.fname = '/home/richard/Documents/School/Research/Uniax/SampleDimensions/AAAHealthy50M_dims/dimensions.csv'
+        # self.dirname = '/home/richard/Documents/School/Research/Uniax/RawFailFiles/AAAHealthy50M_FailFiles/'
+
+        self.fname = '/home/richard/MyData/MechanicalData/Miriam_Article/Uniax/Dimensions/SamplesToAnalyze.csv'
+        self.dirname = '/home/richard/MyData/MechanicalData/Uniax/Fail_Files/'
+
+        # self.fname = '/home/richard/MyData/MechanicalData/Uniax/TestExvivoBuild_20190527/AA_Dimensions.csv'
+        # self.dirname = '/home/richard/MyData/MechanicalData/Uniax/TestExvivoBuild_20190527/'
+
+        #self.fnameOut = '/home/richard//Documents/School/Research/Uniax/CompletedAnalysis/AAAHealthy50M_Analysis.csv'
+
+        # test things
+        self.fnameOut = 'AnalysisOutput_Miriam_Article.csv'
 
         '''
         #~~~~~~~~~~~~~~~~~~~~~~~~~ Main Layout ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -101,6 +118,75 @@ class StartPage:
 
         self.master.bind('<Escape>', lambda e: self.master.destroy())
 
+    '''
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~ Frame 1 functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    '''
+
+    def chooseDims(self):
+
+        self.fname = filedialog.askopenfilename()
+
+    def chooseDir(self):
+
+        self.dirname = filedialog.askdirectory()
+
+    def setupData(self):
+
+        # check if there is an fname and a dirname
+        if self.fname and self.dirname:
+            import uniaxanalysis.parsecsv
+            # Dictionary to pass to parsecsv for obtaining data on specimen
+            args_dict = {
+                'dimsfile': self.fname,
+                'topdir': self.dirname,
+                'timestep': 0.05
+
+            }
+
+            # instantiate parsecsv class to get the data to plot and analyze
+            inst = uniaxanalysis.parsecsv(**args_dict)
+
+            import pdb
+            pdb.set_trace()
+            # Create the list of specimens to be tested from Dimensions file
+            self.sampleList = inst.getMatchingData(inst.dimsFile, inst.topDir)
+
+            self.addButtons()
+        else:
+            print("please get a directory and a dimensions file for the analysis")
+
+    '''
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~ Frame 2 functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    '''
+    def addButtons(self):
+
+        # place a button for each sample in a panel
+        import math
+
+        # create button names from each sample in the list
+        buttonnames = [name[0] for name in self.sampleList]
+
+        # Make 3 columns of buttons
+        row = math.ceil(len(buttonnames)/3.0)
+        col = 3
+        padlist = [(i, j) for i in range(int(row)) for j in range(col)]
+        diff = len(padlist) - len(buttonnames)
+
+        if diff > 0:
+            padlist = padlist[:-diff]
+
+        # Create a rectangular list of objects to store all of the sample names as
+        # tk button objects
+        fullList = zip(buttonnames, padlist)
+
+        for name, indx in fullList:
+            self.buttonsdict[name] = Button(self.frame2, text=name)
+            self.buttonsdict[name]['command'] = lambda sample = name: self.getGraph(sample)
+            self.buttonsdict[name].grid(row=indx[0], column=indx[1])
+    '''
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~ Frame 3 functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    '''
+
     def get_uts(self):
 
         # get the ultimate stress and strain at ultimate stress on the graph
@@ -125,14 +211,14 @@ class StartPage:
             row_for_csv.append(self.props.stiffness)
         else:
             row_for_csv.append("NaN")
-            tkMessageBox.showwarning("Warning", "No property was specified for stiffness")
+            messagebox.showwarning("Warning", "No property was specified for stiffness")
 
         # Add strenght to the list, if not append an empty string
         if self.props.strength:
             row_for_csv.append(self.props.strength)
         else:
             row_for_csv.append("NaN")
-            tkMessageBox.showwarning("Warning", "No property was specified for strength")
+            messagebox.showwarning("Warning", "No property was specified for strength")
 
         # Write the properties to the csv file specified
         write_props_csv(self.fnameOut, row_for_csv)
@@ -149,62 +235,9 @@ class StartPage:
         self.frame5 = Frame(self.master, borderwidth=5, relief='raised')
         self.frame5.grid(row=0, column=1, sticky='nsew', ipady=20)
 
-    def chooseDims(self):
-
-        self.fname = askopenfilename()
-
-    def chooseDir(self):
-
-        self.dirname = askdirectory()
-
-    def setupData(self):
-
-        # check if there is an fname and a dirname
-        if self.fname and self.dirname:
-            import uniaxanalysis.parsecsv
-            # Dictionary to pass to parsecsv for obtaining dta on specimen
-            args_dict = {
-                'dimsfile': self.fname,
-                'topdir': self.dirname,
-                'timestep': 0.05
-
-            }
-
-            # instantiate parsecsv class to get the data to plot and analyze
-            inst = uniaxanalysis.parsecsv(**args_dict)
-
-            # Create the list of specimens to be tested from Dimensions file
-            self.sampleList = inst.getMatchingData(inst.dimsFile, inst.topDir)
-
-            self.addButtons()
-        else:
-            print("please get a directory and a dimensions file for the analysis")
-
-    def addButtons(self):
-
-        # place a button for each sample in a panel
-
-        import math
-        # create button names from each sample in the list
-        buttonnames = [name[0] for name in self.sampleList]
-
-        # Make 3 columns of buttons
-        row = math.ceil(len(buttonnames)/3.0)
-        col = 3
-        padlist = [(i, j) for i in range(int(row)) for j in range(col)]
-        diff = len(padlist) - len(buttonnames)
-
-        if diff > 0:
-            padlist = padlist[:-diff]
-
-        # Create a rectangular list of objects to store all of the sample names as
-        # tk button objects
-        fullList = zip(buttonnames, padlist)
-
-        for name, indx in fullList:
-            self.buttonsdict[name] = Button(self.frame2, text=name)
-            self.buttonsdict[name]['command'] = lambda sample = name: self.getGraph(sample)
-            self.buttonsdict[name].grid(row=indx[0], column=indx[1])
+    '''
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~ Frame 4 functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    '''
 
     def getGraph(self, samplename):
         self.fig.clear()
@@ -215,7 +248,8 @@ class StartPage:
             if samplename == sample[0]:
                 # Get all of the properties for this sample
                 self.props = getprops(fileDimslist=sample, smooth_width=29,
-                                      std=7, chkderivate=0.04, stresstype="Cauchy")
+                                      std=7, chkderivate=0.04, stresstype=self.stresstype,
+                                      straintype=self.straintype)
 
                 # create an instance of DataPlotter class and pass instance of
                 # getproperties
@@ -223,7 +257,7 @@ class StartPage:
 
                 break
         else:
-            print "Couldn't find the file"
+            print("Couldn't find the file")
 
         canvas = self.plotter.plot_graph(self.frame4, self.frame5, Row=0, Col=0)
 

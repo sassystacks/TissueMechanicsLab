@@ -11,8 +11,23 @@ class DataPlotter:
         self.x = cls.strain
         self.y = cls.stress
 
+        # get the variables of interest from the class passed to the function
+        self.secondDer = cls.secondDer
+
+        # Get the index of the failure point
+        self.failIndx = cls.failIndx
+
+        # Get the indices of the linear region
+        linRegion = cls.linearRange
+        self.startLin = linRegion[0]
+        self.endLin = linRegion[1]
+
         # Name of the the current sample
         self.sampleName = sampleName
+
+        # get the values for the linear region
+        self.xLine = cls.xline
+        self.yLine = cls.yline
 
         # Create figure for instance of class
         self.get_fig()
@@ -48,7 +63,7 @@ class DataPlotter:
 
     def __del__(self):
         # destructor to make sure everything is getting destroyed as should be
-        print "Killing plot instance of: ", self.sampleName
+        print("Killing plot instance of: ", self.sampleName)
 
     def set_max_point(self, x, y):
         # draw the point on the graph based on the input data
@@ -68,9 +83,17 @@ class DataPlotter:
         self.fig = plt.figure(1)
         self.ax = self.fig.add_subplot(111)  # create an axis over the subplot
         self.ax.set_title(self.sampleName)  # set the title to the current sample
+
+        # These are the titles Muba
         self.ax.set_xlabel('Engineering Strain')
         self.ax.set_ylabel('Cauchy Stress (MPa)')
+
         self.ax.plot(self.x, self.y)  # plot the x and y data
+        self.ax.scatter(self.x[self.failIndx],self.y[self.failIndx], c="k", s=150,
+                        marker="+", linewidths=8)
+        self.ax.plot(self.x[:self.failIndx],self.secondDer)
+        self.ax.plot(self.xLine,self.yLine,c="k")
+
         self.range, = self.ax.plot([0], [0])  # empty line
         # plot based on the values passed by the class
         self.maxPoint, = self.ax.plot([0], [0], marker="o")
@@ -81,13 +104,15 @@ class DataPlotter:
     def on_click(self, event):
 
         if event.inaxes is not None:
-            print event.xdata, event.ydata
+            print(event.xdata, event.ydata)
         else:
-            print 'Clicked ouside axes bounds but inside plot window'
+            print('Clicked ouside axes bounds but inside plot window')
 
     def plot_graph(self, frame1, frame2, Row=1, Col=1):
+        # import matplotlib as mpl
+        # mpl.use("TkAgg")
         # this method builds the canvas for the plot and the navigation toolbar
-        from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
+        from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 
         # Make the canvas to put the plot on
         canvas = FigureCanvasTkAgg(self.fig, frame1)
@@ -96,9 +121,8 @@ class DataPlotter:
         self.range.figure.canvas.mpl_connect('button_press_event', self)
         canvas.get_tk_widget().grid(row=Row, column=Col)
         canvas._tkcanvas.grid(row=(Row+1), column=Col)
-        NavigationToolbar2TkAgg(canvas, frame2)
-        canvas.show()
-
+        NavigationToolbar2Tk(canvas, frame2)
+        canvas.draw()
 
 '''
  def main(self):

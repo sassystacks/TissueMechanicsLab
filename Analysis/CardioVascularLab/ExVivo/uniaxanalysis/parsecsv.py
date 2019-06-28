@@ -56,17 +56,21 @@ class parsecsv(object):
 
         fullDF = pd.read_csv(dimsFile)  # get a pandas dataframe for full csv file
 
-        # These sample values are returned
-        try:
-            dims = fullDF[["Sample", "Specimen", "Width", "Thickness", "G-G"]]
 
-        # If there is no Specimen sample difference use this
+
+        try:
+            dims = fullDF[["Patient", "Zone","Region","Specimen","Direction", "Width",
+                            "Thickness", "Length"]]
         except KeyError:
-            dims = fullDF[["Sample", "Width", "Thickness", "G-G"]]
+
+            try:
+                dims = fullDF[["Patient", "Specimen", "Width", "Thickness", "Length"]]
+            # If there is no Specimen sample difference use this
+            except KeyError:
+                dims = fullDF[["Sample", "Width", "Thickness", "Length"]]
 
         if not dims.empty:
             dims = dims.values.tolist()  # Converst dataframe to list
-
             return dims  # return list
 
         # If there isn't a list of dimensions
@@ -79,7 +83,7 @@ class parsecsv(object):
         fullDF = self.readDimsFile()
 
         try:
-            nameparts = fullDF[["Sample", "Specimen"]]
+            nameparts = fullDF[["Patient", "Specimen"]]
             nameparts = nameparts.values.tolist()
             searchNames = ["{}_{}".format(name[0], name[1]) for name in nameparts]
         except KeyError:
@@ -109,7 +113,7 @@ class parsecsv(object):
         try:
             os.mkdir(root)
         except OSError:
-            print "directory exists..... writing to existing directory"
+            print ("directory exists..... writing to existing directory")
 
         newfNamelist = []
         for f in fnamelist:
@@ -181,23 +185,35 @@ class parsecsv(object):
         dimslist = self.getTestDims(dimsfile)  # Get the dimesions of the sample and specimen
 
         fullList = []
+
         for dims in dimslist:
+
             try:
-                sampleSpecimen = dims[0] + "_" + dims[1]  # join sample and specimen to compare
-                width = 2
-                thickness = 3
-                g_g = 4
+                sampleSpecimen = dims[0] + "_Z" + str(dims[1]) + str(dims[2]) + str(dims[3]) + "_" + str(dims[4])  # join sample and specimen to compare
+                width = 5
+                thickness = 6
+                g_g = 7
+
             except TypeError:
-                sampleSpecimen = dims[0]
-                width = 1
-                thickness = 2
-                g_g = 3
+            
+                try:
+                    sampleSpecimen = dims[0] + "_" + dims[1]  # join sample and specimen to compare
+                    width = 1
+                    thickness = 2
+                    g_g = 3
+                except TypeError:
+                    sampleSpecimen = dims[0]
+                    width = 1
+                    thickness = 2
+                    g_g = 3
 
             if dims:
                 fname = self.findFile(sampleSpecimen, topDir, 'Noidentifier')
                 if fname is not None:
                     # Make list of sample_specimen, filename of CSV,
                     fullList.append([sampleSpecimen, fname[0], dims[width],
+                                     dims[thickness], dims[g_g]])
+                    print([sampleSpecimen, fname[0], dims[width],
                                      dims[thickness], dims[g_g]])
             else:
                 print("Something is wrong with format of CSV, look at the docs ")

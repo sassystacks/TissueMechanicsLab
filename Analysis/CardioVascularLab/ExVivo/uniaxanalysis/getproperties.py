@@ -20,12 +20,13 @@ Notes:
 from matplotlib import pyplot as plt
 import pandas as pd
 import numpy as np
-import parsecsv  # homemade module
+import uniaxanalysis.parsecsv  # homemade module
+from scipy import signal
 
 
 class getproperties(object):
 
-    def __init__(self, fileDimslist, **kwargs):
+    def __init__(self, fileDimslist, stresstype='cauchy', straintype='engineering', targetReduction=1000, **kwargs):
         # Inherit from parsecsv to be able to extract data
         # super(getproperties,self).__init__(**kwargs)
 
@@ -33,8 +34,9 @@ class getproperties(object):
         self.smooth_width = kwargs.get('smooth_width', 101)  # for smoothing the curve
         self.chkderivative = kwargs.get('chkderivate', .05)
         self.timeStep = kwargs.get("timestep", None)
+        self.stresstype = stresstype
+        self.straintype = straintype
 
-        self.stressType = kwargs.get("stresstype", None)
         # The standard deviation for the windowed gaussian function
         self.std = kwargs.get('std', 7)
 
@@ -46,38 +48,140 @@ class getproperties(object):
         # Only needed for a single calculation each
         width = fileDimslist[2]
         thickness = fileDimslist[3]
-        gtog = fileDimslist[4]
+        initialLength = fileDimslist[4]
 
-        [force, displacement, time] = self.getForceDisplacement()  # Get from CSV
-        if self.timeStep is not None:
+        [force, displacement, time] = self.getForceDisplacement(skip=5)  # Get from CSV
+        if targetReduction is not None:
             [displacement, force] = self.reduceData(
-                time, displacement, force)  # reduce number of data points
+                targetReduction, displacement, force)  # reduce number of data points
 
-        self.strain = self.calcStrain(displacement, gtog)  # Get strain
-        self.stress = self.calcStress(force, width, thickness)  # Get Stress
+        self.calcStrain(displacement,initialLength)
+
+        self.calcStress(force, width, thickness, displacement, initialLength)
 
         # use moving average to smooth data
-        self.stress = self.movingAverage(self.stress)
-        self.strain = self.movingAverage(self.strain)
+        self.stress = self.applySavgol(self.stress)
+
+        #self.strain = self.movingAverage(self.strain)
 
         # Index where failure occurs
-        self.failIndx = self.findFailure(self.strain, self.stress) - 1
+        self.failIndx = self.findFailure(self.stress)
 
-        # Right now these properties are created through manual inputs
-        self.stiffness = None
-        self.strength = None
+        # Get the second derivative of the gaussian convolution of the curve
+        self.secondDer = self.convolveWithGauss(self.stress[:self.failIndx], smooth_width=101, bounds=3)
 
-        # The second order gradient of a gaussian kernel
-        # Shows where graphs deviates and returns to linearity
-        #[self.xlinear, self.ylinear] = self.findLinear(displacement, force)
+        # returns a list of 2 numbers linearRange[0] is the start of the linear range
+        # linearRange[1] is the end of the linear range
 
-        # self.visualizeData(displacement-displacement[0], force)  # Just for comparison to raw data
+        self.linearRange = self.getlinearRange(self.secondDer)
+        start = self.linearRange[0]
+        end = self.linearRange[1]
 
-    def getForceDisplacement(self, *args):
+        # This is a little messy but returns the function of the line, and the coefficients
+        func,linearCoefficients = self.fitlineToData(self.strain[start:end],self.stress[start:end])
+
+        # build the line for the linear region
+        self.xline = np.linspace(self.strain[start],self.strain[end],100)
+        self.yline = self.yValuesFromPolyFit(self.xline, func)
+
+        # get the slope of the line for the stiffness
+        self.stiffness = linearCoefficients[0]
+
+        # get the failure point and set as the strength
+        self.strength = self.stress[self.failIndx]
+
+        # Use the Ramer-Douglas-Peucker Algorithm to create a linear representaiton
+        # self.rdpOutput = self.testRDP(self.stress[:self.failIndx], .1)
+
+
+    def testRDP(self,data,eps):
+        from .rdp import rdp
+
+        output = rdp(data, eps)
+
+        return output
+
+    def getlinearRange(self,data,derivativecutoff=0.1,closeToZero=0.003):
+
+
+        # find the most minimum point on the second derivative curve
+        # step back to a point that is at some cuttoff
+
+
+        index2 = np.argmin(data) - 1
+        val = data[index2]
+
+        while abs(val) < closeToZero:
+            index2 -= 1
+            val = data[index2]
+
+        index2 += 1
+        der = 10000
+
+        t_index = index2 - 1
+
+        while abs(der) > closeToZero:
+            t_index -= 1
+            der = (data[t_index] - data[t_index-1])
+
+        # set the minimum index to a quarter of the data set
+        minIndex = int(t_index*.25)
+        maxDer = 0
+
+        # step backwards until the minimum index in the range is reached
+        while t_index > minIndex:
+
+            der = (data[t_index] - data[t_index-1])
+            # if der < 0:
+            #     print("The index is {0}... the derivative is... {1} and the current minimum is... {2}.".format(t_index,der,Minder))
+            # check if the change in values is steeper than the previous
+            if abs(der) > maxDer:
+
+                maxDer = der
+                index1 = t_index
+
+            t_index -= 1
+
+        index1 = self.stepTillMax(data, index1)
+
+        return [index1,index2]
+
+    def stepTillMax(self,data,index):
+        currentValue = data[index]
+        nextValue= data[index+1]
+
+        while currentValue < nextValue:
+            index += 1
+            currentValue = data[index]
+            nextValue = data[index + 1]
+
+        return index -1
+
+    def fitlineToData(self,x,y):
+
+        # fit a line from the first index to the last
+        coefficients = np.polyfit(x, y, 1)
+        f = np.poly1d(coefficients)
+
+        return f,coefficients
+
+    def yValuesFromPolyFit(self,x,f):
+
+        return np.polyval(f,x)
+
+
+    def applySavgol(self,data,winlen=71,porder=2):
+        from scipy import signal
+        # smooth the data
+        data = signal.savgol_filter(data, winlen, porder, deriv=0,
+                                      delta=1.0, axis=-1, mode='interp', cval=0.0)
+        return data
+
+    def getForceDisplacement(self, skip=None, *args):
         # get the Force and Displacement Data from csv
         # Read csv dimensions and populate list of patient and specimen concantenated
 
-        df = pd.read_csv(self.fname, index_col=False)  # CSV to full pandas dataframe
+        df = pd.read_csv(self.fname, index_col=False, skiprows=skip)  # CSV to full pandas dataframe
 
         # Convert dataframe to numpy arrays
         try:  # Use this if the columns have labels
@@ -87,48 +191,51 @@ class getproperties(object):
 
         # then try this.... columns need to be time,displacement, force in that order
         except KeyError:
+
             force = df.iloc[:, 2].values  # extract force from full pandas dataframe
             displacement = df.iloc[:, 1].values  # extract Displacement
             time = df.iloc[:, 0].values  # extract Displacement
 
         return force, displacement, time
 
-    def reduceData(self, time, x, y):
+    def reduceData(self, target, x, y):
 
-        x, y = self.truncData(x, y)
-        # Reduce the number of data points by a certain step value
-        targetVal = self.timeStep
-        step = int(targetVal/time[1])  # divide the target time by first value in time
-        print "The data has been reduced by ....", step
-        # Reduce the data in both x and y
-        x = x[0::step]
-        y = y[0::step]
+        # reduce the data to a target number of points
+
+        reduceData = int(np.ceil(len(y)/target))
+
+        # Reduce the data by a number so every nth reduceData
+        x = x[::reduceData]
+        y = y[::reduceData]
 
         return x, y
 
-    def calcStress(self, force, width, thickness):
+    def calcStress(self, force, width, thickness,displacement,initialLength):
 
         # Calulate the cauchy stress if specified defaults to the 1st Piola-Kirchoff
         # aka engineering stress
-        if self.stressType == "Cauchy":
-            stretch = self.strain+1
-            stress = force/(width*thickness)*stretch
+        if self.stresstype == "cauchy":
+            stretch = (displacement - displacement[0])/initialLength + 1
+            self.stress = force/(width*thickness)*stretch
+
+        elif self.stresstype == "firstpiola":
+            self.stress = force/(width*thickness)
 
         else:
             # 1st Piola stress
-            stress = force/(width*thickness)
-
-        return stress
+            print("hmmm need to pass in (firstpiola or cauchy)")
 
     def calcStrain(self, disp, g_g):
 
         disp = disp-disp[0]  # Zero the displacement for the first measurement
         strain = disp/g_g  # engineering strain
 
-        # strain = strain[1:-1]  # Reduce the points by 1 on either side to keep consistent
-        # vector size with stress after moving average
-
-        return strain
+        if self.straintype == 'engineering':
+            self.strain = strain  # Get strain
+        elif self.straintype == 'stretch':
+            self.strain = strain + 1
+        else:
+            print("What the fuck are you doing.... (engineering or stretch)")
 
     def fitRange(self, *args):
 
@@ -186,8 +293,33 @@ class getproperties(object):
 
         return der
 
+    def convolveWithGauss(self, data, smooth_width=101, bounds=3):
+
+        padder = int(smooth_width/2)
+
+        # pad the data
+        paddedData = np.pad(data, (padder, padder), 'edge')
+
+        # convolve the data with the second derivative of a gaussian distribution
+
+        # Create the x values to apply to the gaussian distribution
+        x1 = np.linspace(-bounds, bounds, smooth_width)
+        norm = np.sum(np.exp(-x1**2)) * (x1[1]-x1[0])  # ad hoc normalization
+
+        y1 = (4*x1**2 - 2) * np.exp(-x1**2) / smooth_width * 8  # norm*(x1[1]-x1[0])
+
+        # # Create a gaussian distribution to convolve the data with
+        # window = signal.gaussian(201, std=3)
+
+        # calculate second order deriv.
+        y_convPadded = np.convolve(paddedData, y1, mode="same")
+
+        y_conv = y_convPadded[padder:-padder]
+
+        return y_conv
+
     def findLinear(self, disp, force, minimumSlope=0.05):
-        from scipy import signal
+
 
         # create convolution kernel for calculating
         # the smoothed second order derivative
@@ -238,8 +370,8 @@ class getproperties(object):
                         # get the stress where the loop broke
                         stressAtstart = self.stress[zero_crossings[num]]
                         stressAtstart = np.around(stressAtstart, 3)
-                        print "The derivate for {} was {} at {} MPa".format(
-                            self.sample, np.around(a, 3), stressAtstart)  # print the stress at that point
+                        print ("The derivate for {} was {} at {} MPa".format(
+                            self.sample, np.around(a, 3), stressAtstart))  # print the stress at that point
                         break
             minimumSlope /= 10  # reduce slope criteria by one order if magnitude if it has not convergedd
 
@@ -251,9 +383,9 @@ class getproperties(object):
         plt.plot(x, y, color="r")
         plt.show()
 
-        print "Linear region starts at ... {} MPa".format(np.around(self.stress[minrange], 3))
-        print "Linear region ends at   ... {} MPa".format(np.around(self.stress[maxrange], 3))
-        print "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+        print ("Linear region starts at ... {} MPa".format(np.around(self.stress[minrange], 3)))
+        print ("Linear region ends at   ... {} MPa".format(np.around(self.stress[maxrange], 3)))
+        print ("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         z = np.polyfit(x_fit, y_fit, 1)
         f = np.poly1d(z)
 
@@ -275,23 +407,19 @@ class getproperties(object):
 
         return title
 
-    def findFailure(self, x, y):
+    def findFailure(self, data):
 
-        # start at 10 percent of the data set to avoid noise at beginning of curve
-        start = int(len(y)/10)
-        ydata = y[int(start):]
-        conv_array = np.convolve(ydata, [-1, 0, 1])
-        zero_crossings = np.where(np.diff(np.sign(conv_array)))[0]
+        # convolve the data with kernel
+        # pick out the points where the sign changes
 
-        # Find the zero crossings where maxima occurs in the graph
-        for num in zero_crossings:
-            chkslope = self.calcDerivative(num+start, y, x[1])
+        indxArray = signal.argrelmax(data, axis=0, order=1, mode='clip')
+        # return index of the point of failure
 
-            if abs(chkslope) > self.chkderivative:
-                print "broke loop at index .... " + str(num)
-                break
-
-        return num + start
+        if indxArray[0].any():
+            indx = indxArray[0][0]
+        else:
+            indx = np.argmax(data)
+        return indx
 
     def movingAverage(self, a, n=3):
         ret = np.cumsum(a, dtype=float)
@@ -377,24 +505,3 @@ class getproperties(object):
         return {'x': self.x, 'y': self.y, 'xMax': self.xMax,
                 'yMax': self.yMax, 'title': self.pltTitle,
                 'xline': self.xline, 'yline': self.yline}
-
-
-if __name__ == '__main__':
-
-    testList = ['RSAA20160621_U1',
-                '/home/richard/MyProjects/TissueMechanicsLab/CleanSheets/RSAA20160621_U1.CSV',
-                4.62, 2.365, 5.0]
-    # this is a sample to test outputs
-    args_dict = {
-        'dimsfile': '/home/richard/MyProjects/TissueMechanicsLab/RawData/Allfiles.csv',
-        'topdir': '/home/richard/MyProjects/TissueMechanicsLab/CleanSheets',
-        'writeto': 'Test', 'identifier': '_Fail', 'skiprows': 5, 'ignore': '.tdf',
-        'smooth_width': 59, 'project': 'AAA', ',step': 20}
-    a = getproperties(fileDimslist=testList, **args_dict)
-    # d = a.getMatchingData('/home/richard/MyProjects/TissueMechanicsLab/CleanSheets',
-    #                     '/home/richard/MyProjects/TissueMechanicsLab/RawData/Allfiles.csv')
-    # args_dict = {
-    #             'directory' : '/home/richard/MyProjects/TissueMechanicsLab/RawData/cp_Test_Data'
-    #             }
-    #
-    # a = getproperties(directory='/home/richard/MyProjects/Analysis/CardioVascularLab/rawCSVfail/AAA20171003/AAA20171003_LA2L.CSV',smooth_width=79).visualizeData()
