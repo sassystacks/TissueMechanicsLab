@@ -56,8 +56,6 @@ class parsecsv(object):
 
         fullDF = pd.read_csv(dimsFile)  # get a pandas dataframe for full csv file
 
-
-
         try:
             dims = fullDF[["Patient", "Zone","Region","Specimen","Direction", "Width",
                             "Thickness", "Length"]]
@@ -195,7 +193,7 @@ class parsecsv(object):
                 g_g = 7
 
             except TypeError:
-            
+
                 try:
                     sampleSpecimen = dims[0] + "_" + dims[1]  # join sample and specimen to compare
                     width = 1

@@ -44,7 +44,7 @@ class StartPage:
         # self.fname = '/home/richard/Documents/School/Research/Uniax/SampleDimensions/AAAHealthy50M_dims/dimensions.csv'
         # self.dirname = '/home/richard/Documents/School/Research/Uniax/RawFailFiles/AAAHealthy50M_FailFiles/'
 
-        self.fname = '/home/richard/MyData/MechanicalData/Miriam_Article/Uniax/Dimensions/SamplesToAnalyze.csv'
+        self.fname = '/home/richard/MyData/MechanicalData/Miriam_Article/Uniax/NIH_Dimensions.csv'
         self.dirname = '/home/richard/MyData/MechanicalData/Uniax/Fail_Files/'
 
         # self.fname = '/home/richard/MyData/MechanicalData/Uniax/TestExvivoBuild_20190527/AA_Dimensions.csv'
@@ -145,9 +145,7 @@ class StartPage:
 
             # instantiate parsecsv class to get the data to plot and analyze
             inst = uniaxanalysis.parsecsv(**args_dict)
-
-            import pdb
-            pdb.set_trace()
+            
             # Create the list of specimens to be tested from Dimensions file
             self.sampleList = inst.getMatchingData(inst.dimsFile, inst.topDir)
 
