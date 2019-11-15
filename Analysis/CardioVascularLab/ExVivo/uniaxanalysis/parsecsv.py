@@ -14,6 +14,7 @@ Returns a list of filenames with width, thickness and G-G and sample_specimen fo
 that match in a given directory.
 
 To Do
+     - make polymorphic inputs for columns and specimen naming
 
 '''
 
@@ -27,6 +28,12 @@ class parsecsv(object):
 
         self.identifier = kwargs.get('identifier', None)
         self.ignore = kwargs.get('ignore', '.tdf')
+        self.specimenHeaders = kwargs.get('specimenHeaders', ['Sample'])
+        self.dimsHeaders = kwargs.get('dimsHeaders', ['Width',
+                                                    'Thickness','Length'])
+        self.headersOut = kwargs.get('headersOut', ['Sample','Stiffness',
+                                                    'Strength'])
+        self.fileform = kwargs.get('fileform', ["Sample"])
         if 'writeto' in kwargs:  # Directory to write
             self.writeDir = kwargs['writeto']
         if 'project' in kwargs:  # Project type
@@ -36,6 +43,9 @@ class parsecsv(object):
         if 'skiprows' in kwargs:
             self.skiprows = kwargs['skiprows']
 
+        # Create an empty pandas df to store the final results
+        self.outputDict = {}
+        self.df = None
         self.sampleNames = self.makeSearchNames()  # get specimen and sample names
 
     def parseNames(self, *args):
@@ -55,25 +65,22 @@ class parsecsv(object):
         # uses the readDimsFile function to parse a pandas dataframe
 
         fullDF = pd.read_csv(dimsFile)  # get a pandas dataframe for full csv file
+        self.df = fullDF
 
         try:
-            dims = fullDF[["Patient", "Zone","Region","Specimen","Direction", "Width",
-                            "Thickness", "Length"]]
+            dims = fullDF[self.specimenHeaders]
+            return dims
         except KeyError:
 
-            try:
-                dims = fullDF[["Patient", "Specimen", "Width", "Thickness", "Length"]]
-            # If there is no Specimen sample difference use this
-            except KeyError:
-                dims = fullDF[["Sample", "Width", "Thickness", "Length"]]
+            print("The headers you input don't match the csv")
 
-        if not dims.empty:
-            dims = dims.values.tolist()  # Converst dataframe to list
-            return dims  # return list
+        # if not dims.empty:
+        #     dims = dims.values.tolist()  # Converst dataframe to list
+        #     return dims  # return list
 
         # If there isn't a list of dimensions
-        else:
-            print("The CSV file is not formated correctly see the docs for more info")
+        # else:
+        #     print("The CSV file is not formated correctly see the docs for more info")
 
     def makeSearchNames(self, *args):
         # reads information from dimensions sheet and creates a list of sample and specimen
@@ -180,41 +187,52 @@ class parsecsv(object):
         # uses the dimensions file specifed by user to obtain dimensions
         # use a clean directory with all outlier files removed
 
-        dimslist = self.getTestDims(dimsfile)  # Get the dimesions of the sample and specimen
-
+        #dimsDF = self.getTestDims(dimsfile)  # Get the dimesions of the sample and specimen
+        self.df = pd.read_csv(dimsfile)
         fullList = []
 
-        for dims in dimslist:
+        for i,row in self.df.iterrows():
+            #self.fileform = ["Sample", "_", "Z", "Zone", "Region",
+                            # "Specimen", "_", "Direction"]
 
-            try:
-                sampleSpecimen = dims[0] + "_Z" + str(dims[1]) + str(dims[2]) + str(dims[3]) + "_" + str(dims[4])  # join sample and specimen to compare
-                width = 5
-                thickness = 6
-                g_g = 7
+            sampleSpecimen = [str(row[f]) if f in self.specimenHeaders else f \
+                                                        for f in self.fileform]
+            sampleSpecimen = "".join(sampleSpecimen)
 
-            except TypeError:
+            # try:
+            #     sampleSpecimen = dims[0] + "_Z" + str(dims[1]) + str(dims[2]) + str(dims[3]) + "_" + str(dims[4])  # join sample and specimen to compare
+            #     width = 5
+            #     thickness = 6
+            #     g_g = 7
+            #
+            # except TypeError:
+            #
+            #     try:
+            #         sampleSpecimen = dims[0] + "_" + dims[1]  # join sample and specimen to compare
+            #         width = 1
+            #         thickness = 2
+            #         g_g = 3
+            #     except TypeError:
+            #         sampleSpecimen = dims[0]
+            #         width = 1
+            #         thickness = 2
+            #         g_g = 3
 
-                try:
-                    sampleSpecimen = dims[0] + "_" + dims[1]  # join sample and specimen to compare
-                    width = 1
-                    thickness = 2
-                    g_g = 3
-                except TypeError:
-                    sampleSpecimen = dims[0]
-                    width = 1
-                    thickness = 2
-                    g_g = 3
+            fname = self.findFile(sampleSpecimen, topDir, 'Noidentifier')
+            if fname is not None:
+                # make a list of all of the dimensions
+                dimsList = [row[d] for d in self.dimsHeaders]
+                # Make list of sample_specimen, filename of CSV,
+                fullList.append([sampleSpecimen, fname[0]] + dimsList)
 
-            if dims:
-                fname = self.findFile(sampleSpecimen, topDir, 'Noidentifier')
-                if fname is not None:
-                    # Make list of sample_specimen, filename of CSV,
-                    fullList.append([sampleSpecimen, fname[0], dims[width],
-                                     dims[thickness], dims[g_g]])
-                    print([sampleSpecimen, fname[0], dims[width],
-                                     dims[thickness], dims[g_g]])
+
+                values = row.reindex(self.headersOut).values
+                self.outputDict[sampleSpecimen] = dict(zip(self.headersOut,
+                                                        values))
             else:
-                print("Something is wrong with format of CSV, look at the docs ")
+                print("Problem with {0}, file might not exist"\
+                            .format(sampleSpecimen))
+
         return fullList
 
 

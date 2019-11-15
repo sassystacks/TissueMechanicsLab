@@ -17,14 +17,19 @@ inputs:
     - directory - Folder with raw uniax data files in csv format with format: time, distance, force
 
 To Do:
-    - control when line for manual control shows up
+    - polymorphic method for handling input data (variable names to get) <done>
+    - control when line for manual control shows up <done>
     - test rdp for finding linear region - done (check implementation)
-    - fix point picking on plot so that can work in desceding order of x value - done
+    - fix point picking on plot so that can work in desceding order of x value - <done>
     - tick boxes for properties
+    - config file
+    - scroll bar for large data sets
+
 Bugs:
     - work out bug in the 2nd order gaussian - done
     - work out bug in the display for automatic linear find
     - destroy instance of toolbar on graph create
+    - destroy instance of plot everytime
 '''
 
 class StartPage:
@@ -34,26 +39,32 @@ class StartPage:
 
         # Some properties that Rubab and Mohammaded complained soooooooooo much
         # to get..... jesus Muba
-        self.straintype = 'engineering' # can change to engineering
-        self.stresstype = 'cauchy' # can change to cauchy
+        self.straintype = 'engineering' # can change to engineering, and lamda
+        self.stresstype = 'cauchy' # can change between cauchy and piola
 
         self.master = master
         self.buttonsdict = {}
         self.fig = plt.figure(1)
 
+        self.plotter = DataPlotter()
+
         # self.fname = '/home/richard/Documents/School/Research/Uniax/SampleDimensions/AAAHealthy50M_dims/dimensions.csv'
         # self.dirname = '/home/richard/Documents/School/Research/Uniax/RawFailFiles/AAAHealthy50M_FailFiles/'
 
-        self.fname = '/home/richard/MyData/MechanicalData/Miriam_Article/Uniax/NIH_Dimensions.csv'
+        # For Data Extraction
+        self.specimenHeaders = ["Sample", "Zone", "Region", "Specimen", "Direction"]
+        self.dimensionHeaders = ["Width","Thickness","Length"]
+
+        self.headersOut = ["Sample", "Zone", "Region", "Specimen", "Direction",
+                            "PointID","Strength","Stiffness"]
+        self.fileform = ["Sample", "_", "Z", "Zone", "Region",
+                        "Specimen", "_", "Direction"]
+
+        self.fname = '/home/richard/MyData/MechanicalData/Uniax/DimensionsFiles/NIH_Dimensions_newest.csv'
         self.dirname = '/home/richard/MyData/MechanicalData/Uniax/Fail_Files/'
 
-        # self.fname = '/home/richard/MyData/MechanicalData/Uniax/TestExvivoBuild_20190527/AA_Dimensions.csv'
-        # self.dirname = '/home/richard/MyData/MechanicalData/Uniax/TestExvivoBuild_20190527/'
-
-        #self.fnameOut = '/home/richard//Documents/School/Research/Uniax/CompletedAnalysis/AAAHealthy50M_Analysis.csv'
-
         # test things
-        self.fnameOut = 'AnalysisOutput_Miriam_Article.csv'
+        self.fnameOut = 'TestOutputs.csv'
 
         '''
         #~~~~~~~~~~~~~~~~~~~~~~~~~ Main Layout ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -139,15 +150,20 @@ class StartPage:
             args_dict = {
                 'dimsfile': self.fname,
                 'topdir': self.dirname,
-                'timestep': 0.05
-
+                'timestep': 0.05,
+                'headersOut': self.headersOut,
+                'specimenHeaders': self.specimenHeaders,
+                'dimsHeaders': self.dimensionHeaders,
+                'fileform': self.fileform,
             }
 
             # instantiate parsecsv class to get the data to plot and analyze
-            inst = uniaxanalysis.parsecsv(**args_dict)
-            
+            self.csvDataParser = uniaxanalysis.parsecsv(**args_dict)
+
             # Create the list of specimens to be tested from Dimensions file
-            self.sampleList = inst.getMatchingData(inst.dimsFile, inst.topDir)
+            self.sampleList = self.csvDataParser.getMatchingData(
+                                                    self.csvDataParser.dimsFile,
+                                                    self.csvDataParser.topDir)
 
             self.addButtons()
         else:
@@ -195,31 +211,31 @@ class StartPage:
     def get_linear(self):
         modulusElasticity, regionData = self.props.manual_linear(self.props.strain, self.props.stress,
                                                                  self.plotter.xs, self.plotter.ys)
-
         self.plotter.set_linear_region(regionData[0], regionData[1])
 
     def write_analysis(self):
         # This function writes the value to a csv and destroys the button object in the GUI
 
-        # Add the sample name to the front of the row
-        row_for_csv = [self.props.sample]
-
         # Add stiffness to the list, if not append an empty string
         if self.props.stiffness:
-            row_for_csv.append(self.props.stiffness)
+            self.csvDataParser.outputDict[self.props.sample]['Stiffness'] \
+                                                        = self.props.stiffness
+
         else:
-            row_for_csv.append("NaN")
-            messagebox.showwarning("Warning", "No property was specified for stiffness")
+            self.csvDataParser.outputDict[self.props.sample]['Stiffness'] \
+                                                        = "NaN"
 
         # Add strenght to the list, if not append an empty string
         if self.props.strength:
-            row_for_csv.append(self.props.strength)
+            self.csvDataParser.outputDict[self.props.sample]['Strength'] \
+                                                        = self.props.strength
         else:
-            row_for_csv.append("NaN")
-            messagebox.showwarning("Warning", "No property was specified for strength")
+            self.csvDataParser.outputDict[self.props.sample]['Strength'] \
+                                                        = "NaN"
 
         # Write the properties to the csv file specified
-        write_props_csv(self.fnameOut, row_for_csv)
+        write_props_csv(self.fnameOut, self.csvDataParser.outputDict,
+                                        self.props.sample, self.headersOut)
 
         # destroy the button
         self.buttonsdict[self.props.sample].destroy()
@@ -251,7 +267,9 @@ class StartPage:
 
                 # create an instance of DataPlotter class and pass instance of
                 # getproperties
-                self.plotter = DataPlotter(self.props,  sample[0])
+
+                self.plotter.setClass(self.props)
+                self.plotter.setSample(sample[0])
 
                 break
         else:

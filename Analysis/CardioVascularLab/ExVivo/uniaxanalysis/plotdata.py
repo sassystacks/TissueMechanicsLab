@@ -1,33 +1,37 @@
 from matplotlib import pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 
 
 class DataPlotter:
-    def __init__(self, cls, sampleName="No Name"):
+    def __init__(self, cls=None, sampleName="No Name"):
 
         # create a class variable that is the class passed to the funciton
         self.cls = cls
+        self.sampleName = sampleName
 
+        if self.cls:
+            self.setVars()
+
+    def setVars(self):
         # initial variables for plotting stress and strain
-        self.x = cls.strain
-        self.y = cls.stress
+        self.x = self.cls.strain
+        self.y = self.cls.stress
 
         # get the variables of interest from the class passed to the function
-        self.secondDer = cls.secondDer
+        self.secondDer = self.cls.secondDer
 
         # Get the index of the failure point
-        self.failIndx = cls.failIndx
+        self.failIndx = self.cls.failIndx
 
         # Get the indices of the linear region
-        linRegion = cls.linearRange
+        linRegion = self.cls.linearRange
         self.startLin = linRegion[0]
         self.endLin = linRegion[1]
 
-        # Name of the the current sample
-        self.sampleName = sampleName
 
         # get the values for the linear region
-        self.xLine = cls.xline
-        self.yLine = cls.yline
+        self.xLine = self.cls.xline
+        self.yLine = self.cls.yline
 
         # Create figure for instance of class
         self.get_fig()
@@ -64,6 +68,14 @@ class DataPlotter:
     def __del__(self):
         # destructor to make sure everything is getting destroyed as should be
         print("Killing plot instance of: ", self.sampleName)
+
+    def setClass(self,cls):
+        self.cls = cls
+
+        self.setVars()
+
+    def setSample(self,sample):
+        self.sampleName = sample
 
     def set_max_point(self, x, y):
         # draw the point on the graph based on the input data
@@ -112,17 +124,17 @@ class DataPlotter:
         # import matplotlib as mpl
         # mpl.use("TkAgg")
         # this method builds the canvas for the plot and the navigation toolbar
-        from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 
         # Make the canvas to put the plot on
-        canvas = FigureCanvasTkAgg(self.fig, frame1)
+        self.canvas = FigureCanvasTkAgg(self.fig, frame1)
 
         # attach a mouse click
         self.range.figure.canvas.mpl_connect('button_press_event', self)
-        canvas.get_tk_widget().grid(row=Row, column=Col)
-        canvas._tkcanvas.grid(row=(Row+1), column=Col)
-        NavigationToolbar2Tk(canvas, frame2)
-        canvas.draw()
+        self.canvas.get_tk_widget().grid(row=Row, column=Col)
+        self.canvas._tkcanvas.grid(row=(Row+1), column=Col)
+        # self.nav = None
+        # self.nav = NavigationToolbar2Tk(self.canvas, frame2)
+        self.canvas.draw()
 
 '''
  def main(self):
