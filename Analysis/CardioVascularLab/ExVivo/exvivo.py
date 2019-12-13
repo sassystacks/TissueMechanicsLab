@@ -58,7 +58,7 @@ class StartPage:
         self.headersOut = ["Sample", "Zone", "Region", "Specimen", "Direction",
                             "PointID","Strength","Stiffness"]
         self.fileform = ["Sample", "_", "Z", "Zone", "Region",
-                        "Specimen", "_", "Direction"]
+                        "Specimen", "_", "Direction"] # this is the format of the file
 
         self.fname = '/home/richard/MyData/MechanicalData/Uniax/DimensionsFiles/NIH_Dimensions_newest.csv'
         self.dirname = '/home/richard/MyData/MechanicalData/Uniax/Fail_Files/'
