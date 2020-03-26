@@ -1,16 +1,21 @@
+import sys
+sys.path.append('..')
+from Analyzer.TransitionProperties import ProcessTransitionProperties
+
 from rdp import rdp
 import os
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import signal
 from BiaxDataHandler import BiaxDataParser, BiaxDataOutput
-from BiaxProperties import ProcessBiaxProperties
+# from BiaxProperties import ProcessBiaxProperties
 
+from Analyzer import DataFilter
 
 def _getBinIndexOfNumpyArrays(data, binsize=0.01):
 
-    bins=np.arange(min(data), max(data) + binsize, binsize)
-    inds = np.digitize(data, bins)
+    bins=np.arange(min(data), max(data) + binsize/2, binsize)
+    inds = np.digitize(data, bins, right=True)
 
     return inds, bins
 
@@ -22,17 +27,17 @@ def _prepValuesForExport(filename):
     return entryDict
 
 def _binDataFromIndices(data,indices, bins):
+
     keys = np.unique(indices)
     keys = np.sort(keys)
     binDict = {k:[] for k in keys}
-
     for i in range(data.size):
-        binDict[indices[i]] = data[i]
+        binDict[indices[i]].append(data[i])
 
-    outputArray = []
-
-    for key in binDict:
-        outputArray.append(np.mean(binDict[key]))
+    outputArray = [np.mean(binDict[key]) for key in binDict]
+    #
+    # for key in binDict:
+    #     outputArray.append(np.mean(binDict[key]))
 
     return np.array(outputArray), bins[keys-1]
 
@@ -60,7 +65,8 @@ def _buildPlottingParameters(label):
     return outputParameters
 
 def _processBiaxData(stressStrainDict, direction_key, eps_raw = 0.1,
-                eps_binned = 0.05, startStrainValue = 0.05, windowWidth = 21):
+                eps_binned = 0.05, startStrainValue = 0.05, windowWidth = 21,
+                bin_size = 0.002):
 
     testPointsX = stressStrainDict[direction_key][0]
     testPointsY = stressStrainDict[direction_key][1]
@@ -68,13 +74,13 @@ def _processBiaxData(stressStrainDict, direction_key, eps_raw = 0.1,
     rawDataPoints = np.stack((testPointsX,testPointsY),axis=-1)
 
     # Bin the data values
-    indx_bins, bins = _getBinIndexOfNumpyArrays(testPointsX, binsize=0.002)
+    indx_bins, bins = _getBinIndexOfNumpyArrays(testPointsX, binsize=bin_size)
     testArray, used_bins = _binDataFromIndices(testPointsY, indx_bins, bins)
     if len(testArray) > windowWidth:
         testArray = signal.savgol_filter(testArray, windowWidth, 2, deriv=0,
                                              delta=1.0, axis=-1, mode='interp', cval=0.0)
 
-    bins = (bins[1:] + bins[:-1]) / 2.
+    # bins = (bins[1:] + bins[:-1]) / 2.
     # print("number of bins: ", used_bins.shape)
 
     binnedData = np.stack((used_bins,testArray),axis=-1)
@@ -106,7 +112,7 @@ def _propsBothDirections(dataDicts,epsilon=0.01,datakey='Binned Data'):
 def _getProperties(dataDict, datakey='Binned Data', eps=0.08, direction='11',
                     inputDict=None):
 
-    props = ProcessBiaxProperties(dataDict[datakey], direction=direction,
+    props = ProcessTransitionProperties(stress_strain = dataDict[datakey], identifier=direction,
                                                                     eps=eps)
     props._setAllValues()
     propDict = props._outputAllValues(outputDict=inputDict)
@@ -114,14 +120,18 @@ def _getProperties(dataDict, datakey='Binned Data', eps=0.08, direction='11',
     return propDict
 
 def _plotter(dataDict):
+    import random
     # {'Raw Data':rawDataPoints,'Raw RDP':rawRDP,
     # 'Binned Data':binnedData,'Binned RDP':binnedRDP}
 
+    colors = ['r','b','y','g']
+    colorCount = 0
 
     fig, ax = plt.subplots(figsize=(10,20))
 
     for data in dataDict:
         for key in dataDict[data]:
+
             params = _buildPlottingParameters(key)
 
             if 'RDP' in key:
@@ -132,60 +142,64 @@ def _plotter(dataDict):
                             linewidth=params['linewidth'])
 
             else:
+                # Change colors from params['color']
                 ax.scatter(dataDict[data][key][...,0],dataDict[data][key][...,1],
                             label=params['label'],
                             alpha=params['alpha'], marker=params['marker'],
-                            color=params['color'],zorder=params['zorder'],
+                            color=colors[colorCount],zorder=params['zorder'],
                             linewidth=params['linewidth'])
+                colorCount += 1
 
     ax.legend()
     plt.show()
 
-# topDir = '/home/richard/MyData/MechanicalData/Miriam_self.propertiesDictArticle/Biax/Biax_for_Elbow/AllSamples'
-# fnameList = os.listdir(topDir)
-MechanicalDataFolder = '/home/richard/MyData/MechanicalData/'
-DataSheet = os.path.join(MechanicalDataFolder,
-                    'Uniax/DataSheets/UniaxNov28Presentation_ImagingData.csv')
-topDirBiax = os.path.join(MechanicalDataFolder,'Biax/RawData/')
-fnameList = BiaxDataParser()._getAllBiaxFiles(topDirBiax)
+if __name__ == "__main__":
 
-# Use this to organize the 2 curves
-directions = ['11','22']
-rdp_epsilon = 0.01
+    # topDir = '/home/richard/MyData/MechanicalData/Miriam_self.propertiesDictArticle/Biax/Biax_for_Elbow/AllSamples'
+    # fnameList = os.listdir(topDir)
+    MechanicalDataFolder = '/home/richard/MyData/MechanicalData/'
+    DataSheet = os.path.join(MechanicalDataFolder,
+                        'Uniax/DataSheets/UniaxNov28Presentation.csv')
+    topDirBiax = os.path.join(MechanicalDataFolder,'Biax/RawData/')
+    fnameList = BiaxDataParser()._getAllBiaxFiles(topDirBiax)
 
-# For testing purpose
-# fnameList = fnameList[:5]
-# fnameList = [fnameList[9]]
+    # Use this to organize the 2 curves
+    directions = ['11','22']
+    rdp_epsilon = 0.01
 
-additionalColumns = ['MTMLow_','MaxStress_','MTMhigh_','T_Stress_Start_',
-                    'T_Strain_Start_','T_Stress_End_','T_Strain_End_']
-additionalColumns = [col + d for col in additionalColumns for d in directions]
-dataSaver = BiaxDataOutput(DataSheet, checkCols={}, propertiesDict={},
-                            addCols=additionalColumns)
-print(len(dataSaver.outputDf))
-for fname in fnameList:
+    # For testing purpose
+    # fnameList = fnameList[:5]
+    # fnameList = [fnameList[9]]
 
-    try:
+    additionalColumns = ['MTMLow_','MaxStress_','MTMhigh_','T_Stress_Start_',
+                        'T_Strain_Start_','T_Stress_End_','T_Strain_End_']
+    additionalColumns = [col + d for col in additionalColumns for d in directions]
+    dataSaver = BiaxDataOutput(DataSheet, checkCols={}, propertiesDict={},
+                                addCols=additionalColumns)
+    # print(len(dataSaver.outputDf))
+    for fname in fnameList:
 
-        print("Processing Sample: ", fname.split(".")[0])
-        fullfname = os.path.join(topDirBiax, fname)
+        try:
 
-        stressStrainDict = BiaxDataParser()._buildStressStrain(fname)
+            print("Processing Sample: ", fname.split(".")[0])
+            fullfname = os.path.join(topDirBiax, fname)
 
-        testDict = {direction:_processBiaxData(stressStrainDict, direction,
-                        eps_raw = 0.08) \
-                        for direction in directions}
-        test = _propsBothDirections(testDict,epsilon=rdp_epsilon)
+            stressStrainDict = BiaxDataParser()._buildStressStrain(fname)
 
-        columnEntries = _prepValuesForExport(fullfname)
+            testDict = {direction:_processBiaxData(stressStrainDict, direction,
+                            eps_raw = 0.08) \
+                            for direction in directions}
+            test = _propsBothDirections(testDict,epsilon=rdp_epsilon)
 
-        dataSaver.checkCols = columnEntries
-        dataSaver.propertiesDict = test
-        dataSaver._checkEntries()
+            columnEntries = _prepValuesForExport(fullfname)
+
+            dataSaver.checkCols = columnEntries
+            dataSaver.propertiesDict = test
+            dataSaver._checkEntries()
 
 
-    except Exception as e:
-        print('Something is wrong with: ', fname)
-        print(e)
-# print(len(dataSaver.outputDf))
-dataSaver._writeData("../../../DataSheets/checkMissing.csv")
+        except Exception as e:
+            print('Something is wrong with: ', fname)
+            print(e)
+    # print(len(dataSaver.outputDf))
+    dataSaver._writeData("../../../DataSheets/checkMissing.csv")

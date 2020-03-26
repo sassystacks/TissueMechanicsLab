@@ -1,44 +1,26 @@
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 
+import numpy as np
 
 class DataPlotter:
-    def __init__(self, cls=None, sampleName="No Name"):
+    def __init__(self, cls=None, sampleName="No Name", props={}):
 
         # create a class variable that is the class passed to the funciton
         self.cls = cls
         self.sampleName = sampleName
 
+        self.props = props
+        self.activePropPlot = {}
+
+        # Create a blank plot
+        self.fig = plt.figure(1)
+        self.ax = self.fig.add_subplot(111)  # create an axis over the subplot
+        self.range, = self.ax.plot([0], [0])
+
+
         if self.cls:
             self.setVars()
-
-    def setVars(self):
-        # initial variables for plotting stress and strain
-        self.x = self.cls.strain
-        self.y = self.cls.stress
-
-        # get the variables of interest from the class passed to the function
-        self.secondDer = self.cls.secondDer
-
-        # Get the index of the failure point
-        self.failIndx = self.cls.failIndx
-
-        # Get the indices of the linear region
-        linRegion = self.cls.linearRange
-        self.startLin = linRegion[0]
-        self.endLin = linRegion[1]
-
-
-        # get the values for the linear region
-        self.xLine = self.cls.xline
-        self.yLine = self.cls.yline
-
-        # Create figure for instance of class
-        self.get_fig()
-
-        # initialize lists to store x and y data created in function get_fig
-        self.xs = list(self.range.get_xdata())
-        self.ys = list(self.range.get_ydata())
 
     def __call__(self, event):
         # run this when a call to this function is made, by clicking inside the graph
@@ -69,6 +51,34 @@ class DataPlotter:
         # destructor to make sure everything is getting destroyed as should be
         print("Killing plot instance of: ", self.sampleName)
 
+    def setVars(self):
+        # initial variables for plotting stress and strain
+        self.x = self.cls.strain
+        self.y = self.cls.stress
+
+        # get the variables of interest from the class passed to the function
+        self.secondDer = self.cls.secondDer
+
+        # Get the index of the failure point
+        self.failIndx = self.cls.failIndx
+
+        # Get the indices of the linear region
+        linRegion = self.cls.linearRange
+        self.startLin = linRegion[0]
+        self.endLin = linRegion[1]
+
+
+        # get the values for the linear region
+        self.xLine = self.cls.xline
+        self.yLine = self.cls.yline
+
+        # Create figure for instance of class
+        self.get_fig()
+
+        # initialize lists to store x and y data created in function get_fig
+        self.xs = list(self.range.get_xdata())
+        self.ys = list(self.range.get_ydata())
+
     def setClass(self,cls):
         self.cls = cls
 
@@ -90,10 +100,43 @@ class DataPlotter:
         self.linearRegion.set_data([x], [y])
         self.linearRegion.figure.canvas.draw()
 
+    def set_props(self,props):
+        self.props = props
+
+    def remove_prop_plot(self, key):
+
+        if key in self.activePropPlot:
+            self.activePropPlot[key].remove()
+            del self.activePropPlot[key]
+            self.canvas.draw()
+
+    def plot_prop(self,key,propMap,plotparams):
+        '''
+        Function to parse the checkboxes in the GUI and see which props to plot.
+        Properties must be 2 d numpy array where array[..,0] is x value
+        '''
+        propMap = np.array(propMap)
+        val = np.vectorize(self.props.get)(propMap)
+
+        # if plotparams['plottype'] == 'line':
+        self.activePropPlot[key], = self.ax.plot(val[...,0],val[...,1],
+                                    color=plotparams['color'],
+                                    marker=plotparams['marker'],
+                                    linewidth=plotparams['linewidth'])
+        # elif plotparams['plottype'] == 'scatter':
+        #     self.activePropPlot[key], = self.ax.scatter(val[...,0],val[...,1])
+
+        # print('In Plotter {0}:{1}'.format(key,val))
+
+        self.canvas.draw()
+
+
     def get_fig(self):
         # this function returns a figure for further analysis
+
         self.fig = plt.figure(1)
         self.ax = self.fig.add_subplot(111)  # create an axis over the subplot
+
         self.ax.set_title(self.sampleName)  # set the title to the current sample
 
         # These are the titles Muba
@@ -101,10 +144,14 @@ class DataPlotter:
         self.ax.set_ylabel('Cauchy Stress (MPa)')
 
         self.ax.plot(self.x, self.y)  # plot the x and y data
-        self.ax.scatter(self.x[self.failIndx],self.y[self.failIndx], c="k", s=150,
-                        marker="+", linewidths=8)
-        self.ax.plot(self.x[:self.failIndx],self.secondDer)
-        self.ax.plot(self.xLine,self.yLine,c="k")
+
+        '''
+        This commented out part runs the original strength and stiffness calcs
+        '''
+        # self.ax.scatter(self.x[self.failIndx],self.y[self.failIndx], c="k", s=150,
+        #                 marker="+", linewidths=8)
+        # self.ax.plot(self.x[:self.failIndx],self.secondDer)
+        # self.ax.plot(self.xLine,self.yLine,c="k")
 
         self.range, = self.ax.plot([0], [0])  # empty line
         # plot based on the values passed by the class
@@ -112,6 +159,8 @@ class DataPlotter:
         self.linearRegion, = self.ax.plot([0], [0])
 
         self.fig.canvas.callbacks.connect('button_press_event', self)
+
+
 
     def on_click(self, event):
 

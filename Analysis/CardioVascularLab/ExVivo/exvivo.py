@@ -1,9 +1,16 @@
+import sys
+sys.path.append('..')
+
+from Analyzer.TransitionProperties import ProcessTransitionProperties
+
 from tkinter import *
 from tkinter import messagebox, ttk, filedialog
 # from tkFileDialog import *
 import uniaxanalysis.getproperties as getprops
 from uniaxanalysis.plotdata import DataPlotter
 from uniaxanalysis.saveproperties import write_props_csv
+from exvivoframes import *
+
 
 from matplotlib import pyplot as plt
 
@@ -45,11 +52,10 @@ class StartPage:
         self.master = master
         self.buttonsdict = {}
         self.fig = plt.figure(1)
-
+        self.transitionProps = ProcessTransitionProperties(eps=0.01)
         self.plotter = DataPlotter()
 
-        # self.fname = '/home/richard/Documents/School/Research/Uniax/SampleDimensions/AAAHealthy50M_dims/dimensions.csv'
-        # self.dirname = '/home/richard/Documents/School/Research/Uniax/RawFailFiles/AAAHealthy50M_FailFiles/'
+
 
         # For Data Extraction
         self.specimenHeaders = ["Sample", "Zone", "Region", "Specimen", "Direction"]
@@ -57,10 +63,16 @@ class StartPage:
 
         self.headersOut = ["Sample", "Zone", "Region", "Specimen", "Direction",
                             "PointID","Strength","Stiffness"]
+
+        # this is the format of file so
         self.fileform = ["Sample", "_", "Z", "Zone", "Region",
-                        "Specimen", "_", "Direction"] # this is the format of the file
+                        "Specimen", "_", "Direction"]
+
+
 
         self.fname = '/home/richard/MyData/MechanicalData/Uniax/DimensionsFiles/NIH_Dimensions_newest.csv'
+
+
         self.dirname = '/home/richard/MyData/MechanicalData/Uniax/Fail_Files/'
 
         # test things
@@ -70,20 +82,33 @@ class StartPage:
         #~~~~~~~~~~~~~~~~~~~~~~~~~ Main Layout ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         '''
 
-        self.frame1 = Frame(self.master, borderwidth=5, relief='raised')
-        self.frame1.grid(row=0, column=0, sticky='ew')
+        border = 3
+        self.frame1 = Frame(self.master, borderwidth=border, relief='raised')
+        self.frame1.grid(row=0, column=0, sticky='news')
 
-        self.frame2 = Frame(self.master, borderwidth=5, relief='raised', height=640)
-        self.frame2.grid(row=1, column=0, sticky='N', ipady=20)
+        self.frame2 = Frame(self.master, borderwidth=border, relief='raised')
+        self.frame2.grid(row=1, column=0, sticky='news', ipady=20)
 
-        self.frame3 = Frame(self.master, borderwidth=5, relief='raised')
+        self.frame3 = Frame(self.master, borderwidth=border, relief='raised')
         self.frame3.grid(row=2, column=0, sticky='ew', ipady=20)
 
-        self.frame4 = Frame(self.master, borderwidth=5, relief='raised')
+        self.frame4 = Frame(self.master, borderwidth=border, relief='raised')
         self.frame4.grid(row=1, column=1, sticky='ew', ipady=20)
 
-        self.frame5 = Frame(self.master, borderwidth=5, relief='raised')
+        self.frame5 = Frame(self.master, borderwidth=border, relief='raised')
         self.frame5.grid(row=0, column=1, sticky='nsew', ipady=20)
+
+        self.t_frame6 = Frame(self.master, width=200,height=150, relief='raised')
+        self.frame6 = Frame6.Frame_6(self.t_frame6)
+        self.t_frame6.grid(row=0, column=2,sticky='news')
+
+        self.t_frame7 = Frame(self.master,  borderwidth=border, relief='raised')
+        self.frame7 = Frame7.Frame_7(self.t_frame7,self.plotter)
+        self.t_frame7.grid(row=1, column=2,sticky='ns', ipady=20)
+
+        self.t_frame8 = Frame(self.master,  borderwidth=border, relief='raised')
+        self.frame8 = Frame8.Frame_8(self.t_frame8, self.transitionProps)
+        self.t_frame8.grid(row=2, column=2,sticky='ns', ipady=20)
 
         '''
         ~~~~~~~~~~~~~~~~~~~~~~  Frame 1 Widgets  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -105,6 +130,34 @@ class StartPage:
         button3.grid(row=3, column=0)
 
         '''
+        ~~~~~~~~~~~~~~~~~~~~~~  Frame 2 Widgets  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        '''
+        # self.frame2.grid_rowconfigure(0, weight=1)
+        # self.frame2.grid_columnconfigure(0, weight=1)
+        # self.frame2.grid_propagate(False)
+
+
+        self.buttonCanvas = Canvas(self.frame2)
+        self.xButtonScroller = Scrollbar(self.frame2,orient="horizontal",
+                                        command=self.buttonCanvas.xview)
+        self.yButtonScroller = Scrollbar(self.frame2,
+                                            command=self.buttonCanvas.yview)
+        self.buttonFrame = Frame(self.buttonCanvas)
+
+        self.buttonCanvas.create_window((4,10), window=self.buttonFrame, anchor="nw",
+                                  tags="self.frame")
+
+        self.buttonFrame.bind("<Configure>", self.onFrameConfigure)
+
+        self.buttonCanvas.config(yscrollcommand=self.yButtonScroller.set)
+        self.buttonCanvas.config(xscrollcommand=self.xButtonScroller.set)
+
+        self.buttonCanvas.grid(row=0,column=0,sticky='nwse')
+        self.yButtonScroller.grid(row=0,column=1,sticky='ns')
+        self.xButtonScroller.grid(row=1,column=0,sticky='ew')
+
+
+        '''
         ~~~~~~~~~~~~~~~~~~~~~~  Frame 3 Widgets  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         '''
 
@@ -124,10 +177,15 @@ class StartPage:
         button5.grid(row=2, column=1)
 
         '''
-        ~~~~~~~~~~~~~~~  close program with escape key  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        ~~~~~~~~~~~~~~~~~~~~~~  Frame 4 Widgets  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        '''
+        canvas = self.plotter.plot_graph(self.frame4, self.frame5, Row=0, Col=0)
+        '''
+        ~~~~~~~~~~~~~~~  key Bindings ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         '''
 
         self.master.bind('<Escape>', lambda e: self.master.destroy())
+        # self.master.bind('<Return>', self.frame8._UpdateEpsilonCallback())
 
     '''
     ~~~~~~~~~~~~~~~~~~~~~~~~~~ Frame 1 functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -142,8 +200,8 @@ class StartPage:
         self.dirname = filedialog.askdirectory()
 
     def setupData(self):
-
-        # check if there is an fname and a dirname
+        # check if there is an filename for dimensions and Directory
+        # name for the corresponding raw data files
         if self.fname and self.dirname:
             import uniaxanalysis.parsecsv
             # Dictionary to pass to parsecsv for obtaining data on specimen
@@ -173,7 +231,6 @@ class StartPage:
     ~~~~~~~~~~~~~~~~~~~~~~~~~~ Frame 2 functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     '''
     def addButtons(self):
-
         # place a button for each sample in a panel
         import math
 
@@ -192,14 +249,20 @@ class StartPage:
         # Create a rectangular list of objects to store all of the sample names as
         # tk button objects
         fullList = zip(buttonnames, padlist)
-
+        #
         for name, indx in fullList:
-            self.buttonsdict[name] = Button(self.frame2, text=name)
+            self.buttonsdict[name] = Button(self.buttonFrame, text=name)
             self.buttonsdict[name]['command'] = lambda sample = name: self.getGraph(sample)
             self.buttonsdict[name].grid(row=indx[0], column=indx[1])
+
+    def onFrameConfigure(self, event):
+        '''Reset the scroll region to encompass the inner frame'''
+        self.buttonCanvas.configure(scrollregion=self.buttonCanvas.bbox("all"))
+
     '''
     ~~~~~~~~~~~~~~~~~~~~~~~~~~ Frame 3 functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     '''
+
 
     def get_uts(self):
 
@@ -233,12 +296,24 @@ class StartPage:
             self.csvDataParser.outputDict[self.props.sample]['Strength'] \
                                                         = "NaN"
 
+        # Add all of the trasition props to the output
+        transitionProps = self.transitionProps._outputAllValues()
+
+
+        for prop, val in transitionProps.items():
+            self.csvDataParser.outputDict[self.props.sample][prop] = val
+            self.headersOut.append(prop)
+
+
+        # print(self.csvDataParser.outputDict[self.props.sample])
         # Write the properties to the csv file specified
         write_props_csv(self.fnameOut, self.csvDataParser.outputDict,
                                         self.props.sample, self.headersOut)
 
         # destroy the button
         self.buttonsdict[self.props.sample].destroy()
+
+        del self.props
 
         # This is a hack and could be done better.... just need to get analysis done right now
 
@@ -252,6 +327,25 @@ class StartPage:
     '''
     ~~~~~~~~~~~~~~~~~~~~~~~~~~ Frame 4 functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     '''
+    def getTransitionProperties(self):
+        '''
+        This sets all the transition properties for plotting
+        '''
+        import numpy as np
+        stress_strain = np.stack((self.props.strain[:self.props.failIndx],
+                                    self.props.stress[:self.props.failIndx]),
+                                    axis=-1)
+        self.transitionProps._setStressStrain(stress_strain)
+        self.transitionProps._runTransitionProps()
+        propDict = self.transitionProps._outputAllValues()
+        propDict['MaxStrain_'] = self.props.strain[self.props.failIndx]
+        propDict['StartStrain'] = self.props.strain[0]
+        propDict['StartStress'] = self.props.stress[0]
+        propDict['HighStiffness'] = self.transitionProps.rdp[-2:, :]
+        print(propDict['HighStiffness'])
+        propDict['RDP'] = self.transitionProps.rdp
+
+        self.plotter.set_props(propDict)
 
     def getGraph(self, samplename):
         self.fig.clear()
@@ -262,14 +356,16 @@ class StartPage:
             if samplename == sample[0]:
                 # Get all of the properties for this sample
                 self.props = getprops(fileDimslist=sample, smooth_width=29,
-                                      std=7, chkderivate=0.04, stresstype=self.stresstype,
+                                      std=7, chkderivate=0.04,
+                                      stresstype=self.stresstype,
                                       straintype=self.straintype)
-
+                self.getTransitionProperties()
                 # create an instance of DataPlotter class and pass instance of
                 # getproperties
-
                 self.plotter.setClass(self.props)
                 self.plotter.setSample(sample[0])
+                self.frame7._SetCheckState()
+
 
                 break
         else:

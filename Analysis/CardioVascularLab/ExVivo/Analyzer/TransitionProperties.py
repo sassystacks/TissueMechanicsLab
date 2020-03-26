@@ -1,40 +1,22 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from BiaxDataHandler import BiaxDataFilter
 from rdp import rdp
 
 '''
 this class is used in conjunction with the rdp algorithm where the values
 from the rdp are used to identify specific points in the graph.
+inputs:
+    stress_strain = numpy array
 '''
-class ProcessBiaxProperties:
+class ProcessTransitionProperties:
 
-    def __init__(self, stress_strain, direction='11', eps=0.08):
+    def __init__(self, stress_strain=np.array([]), identifier='', eps=0.08):
 
         # send in the data as a n x 2 numpy array
         self.eps = eps
         self.stress_strain = stress_strain
 
-        # Normailze the input stress and strain data between 0 and 1 for both
-        # Stress and strain
-        '''
-        self.normalized_stress_strain = [np.ravel(stress_strain[...,0]),
-                                        np.ravel(stress_strain[...,1])]
-        self.normalized_stress_strain = [BiaxDataFilter()._normalize(x) \
-                                        for x in self.normalized_stress_strain]
-        self.normalized_stress_strain = \
-                                    np.stack((self.normalized_stress_strain[0],
-                                            self.normalized_stress_strain[1]),
-                                            axis=-1)
-
-        '''
-
-        # run the RDP algorithm on the normalized data
-        self.rdp = rdp(self.stress_strain,epsilon=self.eps)
-        # Filter it to remove lines that are artifacts of the test
-        self._filterRDP()
-
-        self.direction = direction
+        self.identifier = identifier
 
         self.transition_index_start = None
         self.transition_index_end = None
@@ -44,6 +26,27 @@ class ProcessBiaxProperties:
         self.transition_stress_strain_start = [None,None]
         self.transition_stress_strain_end = [None,None]
         self.max_stress = None
+        self.max_stress_indx = None
+
+        # run the RDP algorithm on the normalized data
+
+
+    def _setStressStrain(self,array):
+
+        if array.shape[1] == 2:
+            self.stress_strain = array
+        else:
+            print("The stress strain data must be a 2 dimensional numpy array")
+
+    def _runTransitionProps(self):
+        if self.stress_strain.size:
+            self.rdp = rdp(self.stress_strain,epsilon=self.eps)
+            # Filter it to remove lines that are artifacts of the test
+            self._filterRDP()
+            self._setAllValues()
+        else:
+            self.rdp = None
+
 
     def _outputAllValues(self,outputDict=None):
 
@@ -52,17 +55,18 @@ class ProcessBiaxProperties:
         if outputDict is None:
             outputDict = {}
 
-        outputDict['MTMLow_' + self.direction] = self.mtm_low
-        outputDict['MTMhigh_' + self.direction] = self.mtm_high
-        outputDict['MaxStress_' + self.direction] = self.max_stress
-        outputDict['T_Stress_Start_' + self.direction] = \
+        outputDict['MTMLow_' + self.identifier] = self.mtm_low
+        outputDict['MTMhigh_' + self.identifier] = self.mtm_high
+        outputDict['MaxStress_' + self.identifier] = self.max_stress
+        outputDict['T_Stress_Start_' + self.identifier] = \
                                         self.transition_stress_strain_start[1]
-        outputDict['T_Strain_Start_' + self.direction] = \
+        outputDict['T_Strain_Start_' + self.identifier] = \
                                         self.transition_stress_strain_start[0]
-        outputDict['T_Stress_End_' + self.direction] = \
+        outputDict['T_Stress_End_' + self.identifier] = \
                                         self.transition_stress_strain_end[1]
-        outputDict['T_Strain_End_' + self.direction] = \
+        outputDict['T_Strain_End_' + self.identifier] = \
                                         self.transition_stress_strain_end[0]
+
 
 
         return outputDict
@@ -139,6 +143,7 @@ class ProcessBiaxProperties:
     def _setMaxStress(self):
         # This is the maximum stress value in the data.
         self.max_stress = max(self.stress_strain[...,1])
+        self.max_stress_indx = np.argmax(self.stress_strain[...,1])
 
     def _distancesFromLineDefinedByTwoPoints(self, p_line1, p_line2, points):
         lineDistance = np.sqrt((p_line2[1] - p_line1[1])** \
@@ -160,7 +165,6 @@ class ProcessBiaxProperties:
         plt.show()
 
     def _fitLineForMTMHigh(self,p1,p2):
-
 
         index = self._getIndexAtPoint(self.stress_strain, p1)[0][0]
 

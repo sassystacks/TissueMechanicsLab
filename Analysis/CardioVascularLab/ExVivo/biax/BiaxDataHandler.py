@@ -105,7 +105,6 @@ class BiaxDataOutput:
 
     def _checkEntries(self):
 
-
         if self.checkCols and self.propertiesDict:
             keys = [k for k in self.propertiesDict]
             vals = [self.propertiesDict[val] for val in self.propertiesDict]
