@@ -185,7 +185,7 @@ class StartPage:
         '''
 
         self.master.bind('<Escape>', lambda e: self.master.destroy())
-        # self.master.bind('<Return>', self.frame8._UpdateEpsilonCallback())
+        self.master.bind('<Return>', self.frame8._UpdateEpsilonCallback())
 
     '''
     ~~~~~~~~~~~~~~~~~~~~~~~~~~ Frame 1 functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -47,6 +47,10 @@ class ProcessTransitionProperties:
         else:
             self.rdp = None
 
+    def _normalizeData(self):
+
+        if self.stress_strain.size:
+            pass
 
     def _outputAllValues(self,outputDict=None):
 
