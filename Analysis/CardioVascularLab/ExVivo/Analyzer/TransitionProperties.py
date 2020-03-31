@@ -10,7 +10,7 @@ inputs:
 '''
 class ProcessTransitionProperties:
 
-    def __init__(self, stress_strain=np.array([]), identifier='', eps=0.08):
+    def __init__(self, stress_strain=np.array([]), identifier='', eps=0.01):
 
         # send in the data as a n x 2 numpy array
         self.eps = eps
@@ -27,6 +27,7 @@ class ProcessTransitionProperties:
         self.transition_stress_strain_end = [None,None]
         self.max_stress = None
         self.max_stress_indx = None
+        self.elbow = None
 
         # run the RDP algorithm on the normalized data
 
@@ -70,8 +71,7 @@ class ProcessTransitionProperties:
                                         self.transition_stress_strain_end[1]
         outputDict['T_Strain_End_' + self.identifier] = \
                                         self.transition_stress_strain_end[0]
-
-
+        outputDict['Elbow_Region_' + self.identifier] = self.elbow 
 
         return outputDict
 
@@ -81,6 +81,7 @@ class ProcessTransitionProperties:
         if self.rdp.any():
             self._setTransitionIndexStart(self.rdp[1])
             self._setMTMLow(self.rdp[0],self.rdp[1])
+            self.elbow = False
 
             # Use this to check if the slope of the lines is increasing
 
@@ -93,6 +94,7 @@ class ProcessTransitionProperties:
                 self._setMTMHigh(self.rdp[-2],self.rdp[-1])
                 self._setTransitionIndexEnd(self.rdp[-2])
                 self._setTransitionStressStrainEnd()
+                self.elbow = True
 
 
         # self._testPlotter([self.stress_strain,self.rdp])
@@ -127,6 +129,10 @@ class ProcessTransitionProperties:
         # there is an elbow and a second mtm. The furthest point is identified,
         # from the the last line segment and a line segment is fit to that point.
         self.mtm_high = self._slopeFrom2Points(p1,p2)
+
+    # def _setElbow(self):
+    #     #If there is an elbow set as true
+    #     self.elbow = True
 
     def _setTransitionStressStrainEnd(self):
         # Stress at the end of the non linear portion of curve.

@@ -65,15 +65,16 @@ class StartPage:
                             "PointID","Strength","Stiffness"]
 
         # this is the format of file so
-        self.fileform = ["Sample", "_", "Z", "Zone", "Region",
-                        "Specimen", "_", "Direction"]
+        self.fileform = ["Sample", "_", "Zone", "Region","Specimen", "Direction"] #AAA data
+        #self.fileform = ["Sample", "_","Z", "Zone", "Region","_","Specimen", "Direction"] % NIH BAV data
 
 
 
-        self.fname = '/home/richard/MyData/MechanicalData/Uniax/DimensionsFiles/NIH_Dimensions_newest.csv'
+
+        self.fname = '/Volumes/Biomechanics_LabShare/Abdominal\ Aortic\ Aneurysms\ Ex-vivo\ testing/Mechanical\ Testing/Uniaxial/2016-Jun10/AAA_Dimensions_2016-Jun10.csv'
 
 
-        self.dirname = '/home/richard/MyData/MechanicalData/Uniax/Fail_Files/'
+        self.dirname = '/Volumes/Biomechanics_LabShare/Abdominal\ Aortic\ Aneurysms\ Ex-vivo\ testing/Mechanical\ Testing/Uniaxial/2016-Jun10/FAIL'
 
         # test things
         self.fnameOut = 'TestOutputs.csv'
@@ -288,7 +289,7 @@ class StartPage:
             self.csvDataParser.outputDict[self.props.sample]['Stiffness'] \
                                                         = "NaN"
 
-        # Add strenght to the list, if not append an empty string
+        # Add strength to the list, if not append an empty string
         if self.props.strength:
             self.csvDataParser.outputDict[self.props.sample]['Strength'] \
                                                         = self.props.strength
