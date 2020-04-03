@@ -27,7 +27,7 @@ class ProcessTransitionProperties:
         self.transition_stress_strain_end = [None,None]
         self.max_stress = None
         self.max_stress_indx = None
-
+        self._runTransitionProps()
         # run the RDP algorithm on the normalized data
 
 
@@ -45,7 +45,7 @@ class ProcessTransitionProperties:
             self._filterRDP()
             self._setAllValues()
         else:
-            self.rdp = None
+            self.rdp = np.array([])
 
     def _normalizeData(self):
 
