@@ -71,7 +71,7 @@ class ProcessTransitionProperties:
                                         self.transition_stress_strain_end[1]
         outputDict['T_Strain_End_' + self.identifier] = \
                                         self.transition_stress_strain_end[0]
-        outputDict['Elbow_Region_' + self.identifier] = self.elbow 
+        outputDict['Elbow_Region_' + self.identifier] = self.elbow
 
         return outputDict
 
@@ -89,13 +89,18 @@ class ProcessTransitionProperties:
                 # mtmhighpoint = self._fitLineForMTMHigh(self.rdp[-2],
                 #                                                 self.rdp[-1])
                 self._setTransitionStressStrainStart()
+                self._setMTMHigh(self.rdp[-2],self.rdp[-1]) #get MTMhigh for no elbow as well
 
             if len(self.rdp) > 3:
-                self._setMTMHigh(self.rdp[-2],self.rdp[-1])
                 self._setTransitionIndexEnd(self.rdp[-2])
                 self._setTransitionStressStrainEnd()
                 self.elbow = True
 
+            if lens(self.rdp) < 3: # clear transition stress and strain for no elbow 
+                empty = np.empty(self.transition_stress_strain_end.size)
+                empty[:]=np.NaN
+                self.transition_stress_strain_end = empty
+                self.transition_stress_strain_start = empty
 
         # self._testPlotter([self.stress_strain,self.rdp])
 

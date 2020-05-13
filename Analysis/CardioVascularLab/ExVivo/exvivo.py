@@ -66,7 +66,7 @@ class StartPage:
 
         # this is the format of file so
         self.fileform = ["Sample", "_", "Zone", "Region","Specimen", "Direction"] #AAA data
-        #self.fileform = ["Sample", "_","Z", "Zone", "Region","_","Specimen", "Direction"] % NIH BAV data
+        #self.fileform = ["Sample", "_","Z", "Zone", "Region","Specimen", "_","Direction"] #NIH BAV data
 
 
 
