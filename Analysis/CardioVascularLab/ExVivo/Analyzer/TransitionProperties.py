@@ -96,7 +96,7 @@ class ProcessTransitionProperties:
                 self._setTransitionStressStrainEnd()
                 self.elbow = True
 
-            if lens(self.rdp) < 3: # clear transition stress and strain for no elbow 
+            if len(self.rdp) < 4: # clear transition stress and strain for no elbow 
                 empty = np.empty(self.transition_stress_strain_end.size)
                 empty[:]=np.NaN
                 self.transition_stress_strain_end = empty
