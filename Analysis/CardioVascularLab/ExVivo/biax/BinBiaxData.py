@@ -9,12 +9,9 @@ from RunBiaxElbowAnalysis import _getBinIndexOfNumpyArrays, \
 from Analyzer.DataFilter import ExVivoDataUtils
 from BiaxDataHandler import BiaxDataParser, BiaxDataOutput
 
-from sklearn.cluster import KMeans
-
 from sklearn.preprocessing import normalize
 
 import matplotlib.pyplot as plt
-import seaborn as sns; sns.set()
 
 import os
 import numpy as np
@@ -33,7 +30,9 @@ def _getNumberOfPointsInCluster(data,clusterWidth):
     '''
     count = 1;
     # print(data[count+1] - data[count] < clusterWidth)
-    while count < len(data)  and data[count] - data[count -1] < clusterWidth:
+
+    while count < len(data)  and data[count] - data[count -1] < clusterWidth[0]\
+            and data[count] - data[0] < clusterWidth[1]:
         count += 1
     return count
 
@@ -70,11 +69,12 @@ def _BinByCluster(stressStrainDict,clusterWidth):
     outputDict = {k:[] for k in stressStrainDict}
 
     for i, k in enumerate(stressStrainDict):
+        # Sort the data in the strain then sort the stress data based on that
+        # sorting
         t_strain = np.sort(stressStrainDict[k][0])
         t_stress = stressStrainDict[k][1][stressStrainDict[k][0].argsort()]
 
-        # t_strain = stressStrainDict[k][0]
-        # t_stress = stressStrainDict[k][1]
+        # Get the clusters of data as a single value for each
         (strain,stress) = _clusterByData(t_strain, t_stress, clusterWidth)
 
 
@@ -138,17 +138,8 @@ def _BuildReadFormat(fname):
 
     return readformat
 
-def _ApplyKMeans(X):
 
-
-    labels = KMeans(n_clusters=11).fit_predict(X)
-    print(len(np.unique(labels)))
-    plt.scatter(X[:, 0], X[:, 1], c=labels,
-            s=50, cmap='viridis');
-    plt.show()
-
-
-def _BinData(folderIn, folderOut, filename, clusterWidth=0.001, output=False,
+def _BinData(folderIn, folderOut, filename, clusterWidth=[0.001, 0.01], output=False,
                 analyze=False, readformat = {'11':['E11(dots)','S11'],
                                             '22':['E22(dots)','S22']}):
 
@@ -160,6 +151,8 @@ def _BinData(folderIn, folderOut, filename, clusterWidth=0.001, output=False,
     outputDict = {k:{} for k in stressStrainDict}
 
     t_dict = _BinByCluster(stressStrainDict, clusterWidth)
+
+
 
     for k in stressStrainDict:
         outputDict[k]['Raw Data'] =  np.stack((stressStrainDict[k][0],
@@ -179,6 +172,7 @@ def _BinData(folderIn, folderOut, filename, clusterWidth=0.001, output=False,
     return outputDict
 
 if __name__ == "__main__":
+
 
     directions = ['11','22']
     rdp_epsilon = 0.01
@@ -209,7 +203,8 @@ if __name__ == "__main__":
                     outputFolder = os.path.join(outputTopDir,sub)
                     outputDict = _BinData(fullSubDir, outputFolder,
                                     fname,output=False,readformat=format)
-
+                    if count % 5 ==0:
+                        _plotter(outputDict)
                 except Exception as e:
                     print("Exception in {0} for sample {1}".format(fname,sub))
                     print(e)

@@ -140,7 +140,6 @@ def _plotter(dataDict):
                             alpha=params['alpha'], marker=params['marker'],
                             color=params['color'],zorder=params['zorder'],
                             linewidth=params['linewidth'])
-
             else:
                 # Change colors from params['color']
                 ax.scatter(dataDict[data][key][...,0],dataDict[data][key][...,1],
@@ -149,7 +148,7 @@ def _plotter(dataDict):
                             color=colors[colorCount],zorder=params['zorder'],
                             linewidth=params['linewidth'])
                 colorCount += 1
-    
+
     ax.legend()
     plt.show()
 

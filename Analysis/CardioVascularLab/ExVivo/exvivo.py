@@ -277,6 +277,7 @@ class StartPage:
         self.plotter.set_linear_region(regionData[0], regionData[1])
 
     def write_analysis(self):
+        # import pdb;pdb.set_trace()
         # This function writes the value to a csv and destroys the button object in the GUI
 
         # Add stiffness to the list, if not append an empty string
@@ -302,7 +303,8 @@ class StartPage:
 
         for prop, val in transitionProps.items():
             self.csvDataParser.outputDict[self.props.sample][prop] = val
-            self.headersOut.append(prop)
+            if prop not in self.headersOut:
+                self.headersOut.append(prop)
 
 
         # print(self.csvDataParser.outputDict[self.props.sample])
