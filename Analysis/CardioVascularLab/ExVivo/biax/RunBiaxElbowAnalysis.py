@@ -149,7 +149,7 @@ def _plotter(dataDict):
                             color=colors[colorCount],zorder=params['zorder'],
                             linewidth=params['linewidth'])
                 colorCount += 1
-
+    
     ax.legend()
     plt.show()
 

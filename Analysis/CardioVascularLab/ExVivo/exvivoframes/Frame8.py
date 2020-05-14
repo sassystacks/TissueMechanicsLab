@@ -6,7 +6,7 @@ class Frame_8(tk.Frame):
     change the fit of the rdp algorithm to the data.
     '''
 
-    def __init__(self, master, transitionclass):
+    def __init__(self, master, transitionclass, defaultVal="0.01"):
         tk.Frame.__init__(self,master)
 
         self.master = master
@@ -14,9 +14,15 @@ class Frame_8(tk.Frame):
 
         self.canvas = tk.Canvas(master)
 
-        defaultTest = tk.StringVar(value="0.01")
+        if self.transition.eps:
+            self.defaultVal = str(self.transition.eps)
+            print(self.defaultVal)
+        else:
+            self.defaultVal = defaultVal
+
+        epsilonToText = tk.StringVar(value=self.defaultVal)
         self.epsilonEntry = tk.Entry(self.canvas,
-                                    textvariable=defaultTest)
+                                    textvariable=epsilonToText)
         # self.epsilonEntry.setvar("0.01")
         self.epsilonTitle = tk.Label(self.canvas, text="RDP Epsilon")
 

@@ -122,7 +122,19 @@ class DataPlotter:
         self.activePropPlot[key], = self.ax.plot(val[...,0],val[...,1],
                                     color=plotparams['color'],
                                     marker=plotparams['marker'],
-                                    linewidth=plotparams['linewidth'])
+                                    linewidth=plotparams['linewidth'],label='Raymer-Douglas-Peucker Fit')
+
+        '''
+        Plot some vertical lines to show where stuff is.... delete after thesis
+        is written.
+        '''
+        # self.ax.vlines(val[...,0][1],min(val[...,1]),max(val[...,1]),
+        #                     color='m',
+        #                     linestyle='--',linewidth=3,label="Transition Start")
+        # self.ax.vlines(val[...,0][-2],min(val[...,1]),max(val[...,1]),
+        #                     linestyle='--',linewidth=3,label="Transition End",
+        #                     color='r')
+        # self.ax.legend(loc='best')
         # elif plotparams['plottype'] == 'scatter':
         #     self.activePropPlot[key], = self.ax.scatter(val[...,0],val[...,1])
 
@@ -148,10 +160,14 @@ class DataPlotter:
         '''
         This commented out part runs the original strength and stiffness calcs
         '''
-        # self.ax.scatter(self.x[self.failIndx],self.y[self.failIndx], c="k", s=150,
-        #                 marker="+", linewidths=8)
-        # self.ax.plot(self.x[:self.failIndx],self.secondDer)
-        # self.ax.plot(self.xLine,self.yLine,c="k")
+        # self.ax.scatter(self.x[self.failIndx],self.y[self.failIndx], c="m", s=150,
+        #                 marker="+", linewidths=8,label='Failure')
+        # self.ax.plot(self.x[:self.failIndx],self.secondDer,label='Gaussian Convolution')
+        # self.ax.plot(self.xLine,self.yLine,c="r",label='Linear Prior To Failure')
+        # self.ax.vlines(self.xLine[0],min(self.secondDer),self.y[self.failIndx],linestyle='--',color='k')
+        # self.ax.vlines(self.xLine[-1],min(self.secondDer),self.y[self.failIndx],linestyle='--',color='k')
+        # self.ax.legend()
+        # comment to here
 
         self.range, = self.ax.plot([0], [0])  # empty line
         # plot based on the values passed by the class
