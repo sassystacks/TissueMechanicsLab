@@ -10,7 +10,7 @@ inputs:
 '''
 class ProcessTransitionProperties:
 
-    def __init__(self, stress_strain=np.array([]), identifier='', eps=0.08):
+    def __init__(self, stress_strain=np.array([]), identifier='', eps=0.01):
 
         # send in the data as a n x 2 numpy array
         self.eps = eps
@@ -70,8 +70,7 @@ class ProcessTransitionProperties:
                                         self.transition_stress_strain_end[1]
         outputDict['T_Strain_End_' + self.identifier] = \
                                         self.transition_stress_strain_end[0]
-
-
+        outputDict['Elbow_Region_' + self.identifier] = self.elbow
 
         return outputDict
 
@@ -81,6 +80,7 @@ class ProcessTransitionProperties:
         if self.rdp.any():
             self._setTransitionIndexStart(self.rdp[1])
             self._setMTMLow(self.rdp[0],self.rdp[1])
+            self.elbow = False
 
             # Use this to check if the slope of the lines is increasing
 
@@ -88,12 +88,18 @@ class ProcessTransitionProperties:
                 # mtmhighpoint = self._fitLineForMTMHigh(self.rdp[-2],
                 #                                                 self.rdp[-1])
                 self._setTransitionStressStrainStart()
+                self._setMTMHigh(self.rdp[-2],self.rdp[-1]) #get MTMhigh for no elbow as well
 
             if len(self.rdp) > 3:
-                self._setMTMHigh(self.rdp[-2],self.rdp[-1])
                 self._setTransitionIndexEnd(self.rdp[-2])
                 self._setTransitionStressStrainEnd()
+                self.elbow = True
 
+            if len(self.rdp) < 4: # clear transition stress and strain for no elbow
+                empty = np.empty(self.transition_stress_strain_end.size)
+                empty[:]=np.NaN
+                self.transition_stress_strain_end = empty
+                self.transition_stress_strain_start = empty
 
         # self._testPlotter([self.stress_strain,self.rdp])
 
@@ -127,6 +133,10 @@ class ProcessTransitionProperties:
         # there is an elbow and a second mtm. The furthest point is identified,
         # from the the last line segment and a line segment is fit to that point.
         self.mtm_high = self._slopeFrom2Points(p1,p2)
+
+    # def _setElbow(self):
+    #     #If there is an elbow set as true
+    #     self.elbow = True
 
     def _setTransitionStressStrainEnd(self):
         # Stress at the end of the non linear portion of curve.
