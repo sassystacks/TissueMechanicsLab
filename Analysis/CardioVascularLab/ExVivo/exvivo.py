@@ -28,9 +28,9 @@ To Do:
     - control when line for manual control shows up <done>
     - test rdp for finding linear region - done (check implementation)
     - fix point picking on plot so that can work in desceding order of x value - <done>
-    - tick boxes for properties
+    - tick boxes for properties <done>
     - config file
-    - scroll bar for large data sets
+    - scroll bar for large data sets <done>
 
 Bugs:
     - work out bug in the 2nd order gaussian - done

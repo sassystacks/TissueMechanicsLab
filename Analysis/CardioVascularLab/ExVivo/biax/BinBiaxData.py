@@ -3,15 +3,15 @@ sys.path.append('..')
 
 from RunBiaxElbowAnalysis import _getBinIndexOfNumpyArrays, \
                                  _binDataFromIndices, _processBiaxData, \
-                                 _plotter, _propsBothDirections
+                                  _propsBothDirections
 
 
 from Analyzer.DataFilter import ExVivoDataUtils
+from Analyzer.DataClusters import DataClusterAnalysis as Clusterer
+
 from BiaxDataHandler import BiaxDataParser, BiaxDataOutput
 
-from sklearn.preprocessing import normalize
-
-import matplotlib.pyplot as plt
+from Visualizer.PlotsForBinnedData import BinnedDataPlotter as plotter
 
 import os
 import numpy as np
@@ -21,66 +21,8 @@ def _truncateDataAbove(dataDict, dataKey, threshold=0):
         for i in range(2):
             indxs = np.where(dataDict[key][dataKey][:,i] > threshold)[0]
             dataDict[key][dataKey] = dataDict[key][dataKey][indxs]
+
     return dataDict
-
-def _getNumberOfPointsInCluster(data,clusterWidth):
-    '''
-    take the first element in the data set and get the next n data points that
-    are within the cluster. returns n
-    '''
-    count = 1;
-    # print(data[count+1] - data[count] < clusterWidth)
-
-    while count < len(data)  and data[count] - data[count -1] < clusterWidth[0]\
-            and data[count] - data[0] < clusterWidth[1]:
-        count += 1
-    return count
-
-def _clusterByData(data1,data2,clusterWidth):
-
-    data1Cluster = []
-    data2Cluster = []
-
-    while (len(data1) > 0):
-
-        numberOfPoints = _getNumberOfPointsInCluster(data1, clusterWidth)
-        data1Cluster.append(np.mean(data1[:numberOfPoints]))
-        data2Cluster.append(np.mean(data2[:numberOfPoints]))
-
-        data1 = np.delete(data1, np.arange(numberOfPoints))
-        data2 = np.delete(data2, np.arange(numberOfPoints))
-
-    return (np.array(data1Cluster),np.array(data2Cluster))
-
-def _BinByCluster(stressStrainDict,clusterWidth):
-    '''
-    takes the values imput and finds chunks of data along the x axis
-    and reduces both x and y data with in the chunk to an average value.
-
-    inputs:
-            stressStrainDict - dictionary with form {'11':[stress,strain],
-                               '22':[stress,strain]} where stress/strain is a
-                               numpy array
-            clusterWidth - the width defining connectivity in a cluster, so if
-                           a point is within clusterWidth it is considered
-                           connected to the cluster
-    '''
-
-    outputDict = {k:[] for k in stressStrainDict}
-
-    for i, k in enumerate(stressStrainDict):
-        # Sort the data in the strain then sort the stress data based on that
-        # sorting
-        t_strain = np.sort(stressStrainDict[k][0])
-        t_stress = stressStrainDict[k][1][stressStrainDict[k][0].argsort()]
-
-        # Get the clusters of data as a single value for each
-        (strain,stress) = _clusterByData(t_strain, t_stress, clusterWidth)
-
-
-        outputDict[k] = [strain,stress]
-
-    return outputDict
 
 def _OutputBiaxData(dataDict,folderName, filename):
     import pandas as pd
@@ -138,6 +80,41 @@ def _BuildReadFormat(fname):
 
     return readformat
 
+def _BinByCluster(stressStrainDict,clusterWidth):
+    '''
+    takes the values imput and finds chunks of data along the x axis
+    and reduces both x and y data with in the chunk to an average value.
+
+    inputs:
+            stressStrainDict - dictionary with form {'11':[stress,strain],
+                               '22':[stress,strain]} where stress/strain is a
+                               numpy array
+            clusterWidth - the width defining connectivity in a cluster, so if
+                           a point is within clusterWidth it is considered
+                           connected to the cluster
+    '''
+
+    outputDict = {k:{} for k in stressStrainDict}
+
+    for i, k in enumerate(stressStrainDict):
+        # Sort the data in the strain then sort the stress data based on that
+        # sorting
+        t_strain = np.sort(stressStrainDict[k][0])
+        t_stress = stressStrainDict[k][1][stressStrainDict[k][0].argsort()]
+
+        # Get the clusters of data as a single value for each
+        outputDict[k]['Clusters'] = Clusterer()._clusterByData(t_strain, t_stress,
+                                                            clusterWidth)
+        averageClusters = Clusterer()._clusterDataStat(outputDict[k]['Clusters'], np.mean)
+
+
+        outputDict[k]['Binned Data'] = [averageClusters[0],averageClusters[1]]
+
+
+
+
+
+    return outputDict
 
 def _BinData(folderIn, folderOut, filename, clusterWidth=[0.001, 0.01], output=False,
                 analyze=False, readformat = {'11':['E11(dots)','S11'],
@@ -157,8 +134,11 @@ def _BinData(folderIn, folderOut, filename, clusterWidth=[0.001, 0.01], output=F
     for k in stressStrainDict:
         outputDict[k]['Raw Data'] =  np.stack((stressStrainDict[k][0],
                                                stressStrainDict[k][1]),axis=-1)
-        outputDict[k]['Binned Data'] =  np.stack((t_dict[k][0],
-                                               t_dict[k][1]),axis=-1)
+        outputDict[k]['Binned Data'] =  np.stack((t_dict[k]['Binned Data'][0],
+                                               t_dict[k]['Binned Data'][1])
+                                                                      ,axis=-1)
+        outputDict[k]['Clusters'] =  t_dict[k]['Clusters']
+
 
 
     if analyze:
@@ -204,7 +184,8 @@ if __name__ == "__main__":
                     outputDict = _BinData(fullSubDir, outputFolder,
                                     fname,output=False,readformat=format)
                     if count % 5 ==0:
-                        _plotter(outputDict)
+                        a = plotter(outputDict)
+                        a._plot()
                 except Exception as e:
                     print("Exception in {0} for sample {1}".format(fname,sub))
                     print(e)
