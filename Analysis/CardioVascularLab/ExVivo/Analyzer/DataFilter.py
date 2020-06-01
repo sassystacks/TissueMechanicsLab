@@ -32,3 +32,19 @@ class ExVivoDataUtils:
                 dataDict[key][dataKey] = dataDict[key][dataKey][indxs]
 
         return dataDict
+
+    def _normalizeData(self,array1,array2):
+        '''
+        This normalize 2 numpy arrays and normalize them
+        Some ideas: numpy.linalg.normalize(x) ... look up
+                    x - min / (max-min)
+
+        returns:
+            numpy arrays
+        '''
+
+        # Normalize them
+        normArray1 = []
+        normArray2 = []
+
+        return normArray1, normArray2

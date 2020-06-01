@@ -7,7 +7,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import signal
-from BiaxDataHandler import BiaxDataParser, BiaxDataOutput
+from biax.BiaxDataHandler import BiaxDataParser, BiaxDataOutput
 # from BiaxProperties import ProcessBiaxProperties
 
 from Analyzer import DataFilter

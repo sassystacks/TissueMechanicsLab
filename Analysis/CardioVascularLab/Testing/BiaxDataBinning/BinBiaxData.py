@@ -1,19 +1,20 @@
 import sys
-sys.path.append('..')
+sys.path.append('../../ExVivo')
 
 
 '''
 
 '''
-from RunBiaxElbowAnalysis import _getBinIndexOfNumpyArrays, \
+from biax.RunBiaxElbowAnalysis import _getBinIndexOfNumpyArrays, \
                                  _binDataFromIndices, _processBiaxData, \
                                   _propsBothDirections
+
 
 
 from Analyzer.DataFilter import ExVivoDataUtils
 from Analyzer.DataClusters import DataClusterAnalysis as Clusterer
 
-from BiaxDataHandler import BiaxDataParser, BiaxDataOutput
+from biax.BiaxDataHandler import BiaxDataParser, BiaxDataOutput
 
 from Visualizer.PlotsForBinnedData import BinnedDataPlotter as plotter
 
