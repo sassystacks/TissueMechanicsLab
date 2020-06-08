@@ -18,27 +18,24 @@ work on the class Test. Use the comments below as a roadmap for the imports.
 '''
 # class for tests
 
-# visualization
+# Visualization
 from uniaxanalysis.plotdata import DataPlotter
+from matplotlib import pyplot as plt
 
-# importing data
-from Data.DataStructure import ExvivoData
+import time
+
+# Import Data
+# from Data.DataStructure import ExvivoData (this line will be included when DataStructure.py is complete
 from uniaxanalysis.parsecsv import parsecsv
 
 # Process Data into stress and strain
 from uniaxanalysis.getproperties import getproperties
 
 # Analyze Properties
-from Analyzer.DataFilter import ProcessTransitionProperties
+# from Analyzer.DataFilter import ProcessTransitionProperties
 
 class Test:
     def __init__(self):
         pass
 
 
-
-
-    # import data
-    # Process Data into stress and strain
-    # Test New Function
-    # visualize

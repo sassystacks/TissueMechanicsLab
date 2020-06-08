@@ -52,7 +52,7 @@ class StartPage:
         self.master = master
         self.buttonsdict = {}
         self.fig = plt.figure(1)
-        self.transitionProps = ProcessTransitionProperties(eps=0.008)
+        self.transitionProps = ProcessTransitionProperties(eps=0.02)
         self.plotter = DataPlotter()
 
 
@@ -65,8 +65,8 @@ class StartPage:
                             "PointID","Strength","Stiffness"]
 
         # this is the format of file so
-        self.fileform = ["Sample", "_", "Zone", "Region","Specimen", "Direction"] #AAA data
-        # self.fileform = ["Sample", "_","Z", "Zone", "Region","Specimen", "_","Direction"] #NIH BAV data
+        # self.fileform = ["Sample", "_", "Zone", "Region","Specimen", "Direction"] #AAA data
+        self.fileform = ["Sample", "_","Z", "Zone", "Region","Specimen", "_","Direction"] #NIH BAV data
 
 
 

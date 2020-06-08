@@ -59,6 +59,11 @@ class getproperties(object):
 
         self.calcStress(force, width, thickness, displacement, initialLength)
 
+        # truncate data then normalize
+        self.strain, self.stress = self.truncData(self.strain,self.stress)
+
+        self.stress, self.strain = self._normalizeData(self.stress, self.strain)
+
         # use moving average to smooth data
         self.stress = self.applySavgol(self.stress)
 
@@ -236,6 +241,24 @@ class getproperties(object):
             self.strain = strain + 1
         else:
             print("What the fuck are you doing.... (engineering or stretch)")
+
+
+    def _normalizeData(self, ydata, xdata):
+        '''
+        This intakes 2 numpy arrays and normalizes them.
+        returns:
+            numpy arrays
+        '''
+
+        #maxInd = self._findMax(ydata, 10)
+
+        #xdata = xdata[:maxInd]
+        #ydata = ydata[:maxInd]
+
+        x_norm = (xdata - np.min(xdata)) / (np.max(xdata) - np.min(xdata))
+        y_norm = (ydata - np.min(ydata)) / (np.max(ydata) - np.min(ydata))
+
+        return y_norm, x_norm
 
     def fitRange(self, *args):
 

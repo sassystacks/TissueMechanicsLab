@@ -33,24 +33,39 @@ class ExVivoDataUtils:
 
         return dataDict
 
-    def _normalizeData(self, xdata, ydata):
-        '''
-        This normalize 2 numpy arrays and normalize them
-        Some ideas: numpy.linalg.normalize(x) ... look up
-                    x - min / (max-min)
+    def _findMax(self, data, index):
 
+        currVal = data[index]
+        nextVal = data[index + 1]
+
+        while currVal < nextVal:
+            index += 1
+
+            currVal = data[index]
+            nextVal = data[index + 1]
+
+            maxInd = index - 1
+
+        return maxInd
+
+    # xdata = DataStructure._ProcessedData[0,:]
+    # ydata = DataStructure._ProcessedData[:,0]
+
+    def _normalizeData(self, ydata, xdata):
+        '''
+        This intakes 2 numpy arrays and normalizes them.
         returns:
             numpy arrays
         '''
-        # not sure how to reference the correct arrays here
-        xdata = DataStructure._ProcessedData[0,:]
-        ydata = DataStructure._ProcessedData[:,0]
 
-        x_norm = [xdata/np.linalg.norm(xdata)]
-        y_norm = [ydata/np.linalg.norm(ydata)]
+        maxInd = _findMax(ydata, 10)
 
-        # Normalize them
-        normArray1 = []
-        normArray2 = []
+        xdata = xdata[:maxInd]
+        ydata = ydata[:maxInd]
 
-        return x_norm, y_norm
+        x_norm = (xdata - np.min(xdata)) / (np.max(xdata) - np.min(xdata))
+        y_norm = (ydata - np.min(ydata)) / (np.max(ydata) - np.min(ydata))
+
+        return y_norm, x_norm
+
+
