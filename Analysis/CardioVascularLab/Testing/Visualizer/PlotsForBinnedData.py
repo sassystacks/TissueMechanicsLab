@@ -86,7 +86,7 @@ class BinnedDataPlotter:
         for i in range(numElements):
             self._buildConfidenceElipse(xClusters[i],yClusters[i])
 
-    def _plot(self):
+    def _plot(self, title=None):
 
         import random
         # {'Raw Data':rawDataPoints,'Raw RDP':rawRDP,
@@ -120,6 +120,8 @@ class BinnedDataPlotter:
                                 color=colors[colorCount],zorder=params['zorder'],
                                 linewidth=params['linewidth'])
                     colorCount += 1
+        if title:
 
+            self.ax.set_title(title)
         self.ax.legend()
         plt.show()

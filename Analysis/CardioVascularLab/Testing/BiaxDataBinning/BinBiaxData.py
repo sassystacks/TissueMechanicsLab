@@ -136,7 +136,7 @@ class BiaxDataBinner:
 
         return outputDict
 
-    def _RunBiaxBinData(folderIn, folderOut, filename, clusterWidth=[0.001, 0.01],
+    def _RunBiaxBinData(self, folderIn, folderOut, filename, clusterWidth=[0.001, 0.01],
                     output=False,
                     analyze=False, readformat = {'11':['E11(dots)','S11'],
                                                 '22':['E22(dots)','S22']}):
@@ -148,7 +148,7 @@ class BiaxDataBinner:
                                                             pairs=readformat)
 
 
-        outputDict = _BinData(stressStrainDict, clusterWidth)
+        outputDict = self._BinData(stressStrainDict, clusterWidth)
 
         if analyze:
             outputProps = _propsBothDirections(outputDict,
@@ -174,7 +174,7 @@ def main(f):
     if not os.path.isdir(outputTopDir):
         os.mkdir(outputTopDir)
 
-    for sub in subDirs[:2]:
+    for sub in subDirs:
 
         # Get all files in the current directory
         fullSubDir = os.path.join(topDirBiax,sub)
@@ -182,7 +182,7 @@ def main(f):
 
         count = 0
         for fname in fnameList:
-            if not os.path.isdir(fname):
+            if not os.path.isdir(fname) and "B1" in fname:
                 count += 1
                 try:
                     Binner = BiaxDataBinner()
@@ -190,10 +190,11 @@ def main(f):
                     outputFolder = os.path.join(outputTopDir,sub)
                     outputDict = Binner._RunBiaxBinData(fullSubDir,
                                     outputFolder,
-                                    fname,output=False,readformat=format)
-                    if count % 5 ==0:
+                                    fname,output=False,readformat=format,
+                                            clusterWidth=[0.001, 0.005])
+                    if "1_1" in fname:
                         a = plotter(outputDict)
-                        a._plot()
+                        a._plot(title=fname.split(".")[0])
                 except Exception as e:
                     print("Exception in {0} for sample {1}".format(fname,sub))
                     print(e)
