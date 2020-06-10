@@ -27,14 +27,12 @@ class BiaxDataBinner:
     def __init__(self):
         pass
 
-    def _OutputBiaxData(self,dataDict,folderName, filename):
+    def _OutputBiaxData(self,dataDict,fullfname):
         import pandas as pd
 
         outputDict = self._BuildBiaxOutput(dataDict)
-        fullfname = os.path.join(folderName,filename)
 
-        if not os.path.isdir(folderName):
-            os.mkdir(folderName)
+
 
         # outputDF = pd.DataFrame().from_dict(outputDict)
         outputDF = pd.DataFrame(dict([ (k,pd.Series(v)) for k,v in outputDict.items() ]))
@@ -136,15 +134,13 @@ class BiaxDataBinner:
 
         return outputDict
 
-    def _RunBiaxBinData(self, folderIn, folderOut, filename, clusterWidth=[0.001, 0.01],
-                    output=False,
+    def _RunBiaxBinData(self, filename, clusterWidth=[0.001, 0.01],
+                    fullfnameOut="",
                     analyze=False, readformat = {'11':['E11(dots)','S11'],
                                                 '22':['E22(dots)','S22']}):
 
-        fullfname = os.path.join(folderIn, filename)
 
-
-        stressStrainDict = BiaxDataParser()._buildStressStrain(fullfname,skip=1,
+        stressStrainDict = BiaxDataParser()._buildStressStrain(filename,skip=1,
                                                             pairs=readformat)
 
 
@@ -155,64 +151,177 @@ class BiaxDataBinner:
                                                epsilon=0.01, datakey='Binned Data')
 
 
-        if output:
-            self._OutputBiaxData(outputDict, folderOut, fname)
+        if fullfnameOut:
+            self._OutputBiaxData(outputDict, fullfnameOut)
 
         return outputDict
 
-def main(f):
-    directions = ['11','22']
+def _BuildInputFolderFilenames(f,ftype):
+    if ftype == 'fof': # Folder of Folders
+        # Stuff for file inputs
+        # MechanicalDataFolder = '/home/richard/MyData/MechanicalData/'
+        # topDirBiax = os.path.join(MechanicalDataFolder,'Biax/RawData/Medtronic')
+        topDir = f
+        subDirs = [os.path.join(f,sub) for sub in os.listdir(f)]
 
-    # Stuff for file inputs
-    MechanicalDataFolder = '/home/richard/MyData/MechanicalData/'
-    topDirBiax = os.path.join(MechanicalDataFolder,'Biax/RawData/Medtronic')
-    subDirs = os.listdir(topDirBiax)
+        # Create a list of lists for the files in each subdirectory
+        fnameList = [os.listdir(os.path.join(f,sub)) for sub in subDirs]
+
+    elif ftype == 'fo': # single folder
+
+        # if it is a single folder set the filenames list to all files in the
+        # folder
+        topDir = f
+        subDirs = [f]
+        fnameList = os.listdir(f)
+
+    else: # Single file
+
+        fileparts = os.path.split(f)
+
+        topDir = fileparts[0]
+        subDirs = [fileparts[0]]
+        fnameList = [fileparts[1]]
+
+    return topDir, subDirs, fnameList
+
+def _BuildOutputFileNames(outputTopDir, sub, fname, ftype):
+    '''
+    Mainly for creating the folder of folders in the directory.... stores each
+    in the 'Binned_AllFiles' directory under the top directory. If it does not
+    exist then it creates it.
+    '''
+    if ftype == 'fof': # Folder of Folders
+        outputDir = os.path.join(outputTopDir,os.path.split(sub)[1])
+
+        if not os.path.isdir(outputDir):
+            os.mkdir(outputDir)
+
+        fnameOut = os.path.join(outputDir,fname)
+
+    else: # Single file
+        fnameOut = os.path.join(outputTopDir,fname)
+
+    return fnameOut
+
+def main(f, ftype, save_output=False, clusterParams=[0.001, 0.005],
+                                    directions=['11','22'], visualize=False):
+
+    '''
+    Main function to run the binning of the biax data. Pass in a folder of
+    folders holding biax data, a folder holding biax data, or an individual file
+    of biax data. Folders can only have biax data in them... no other file or
+    folder types
+
+    Parameters:
+        Required:
+            f - <string> folder of folders, folder, or file to bin
+            ftype - <string> that specifies which type f is <'fof','fo','f'>
+        Optional:
+            save_files - <bool> whether or not to save the outputs
+            directions - <list of strings> which directions to analyze
+            visualize - <bool> whether or not to plot and show the outputs
+
+    Returns:
+        None
+    '''
+
+    # sort out these variables based on the input type
+    topDir, subDirs, t_fnameList = _BuildInputFolderFilenames(f, ftype)
 
 
-    # Stuff for Outputs
-    outputTopDir = os.path.join(topDirBiax,"Binned_AllFiles")
-    if not os.path.isdir(outputTopDir):
-        os.mkdir(outputTopDir)
+    # if saving the outputs create the directory to output to
+    if save_output:
+        # Stuff for Outputs
+        outputTopDir = os.path.join(topDir,"Binned_AllFiles")
+        if not os.path.isdir(outputTopDir):
+            os.mkdir(outputTopDir)
 
-    for sub in subDirs:
 
-        # Get all files in the current directory
-        fullSubDir = os.path.join(topDirBiax,sub)
-        fnameList = os.listdir(fullSubDir)
 
-        count = 0
+
+    # enumerate the list for a folder of folders
+    for i,sub in enumerate(subDirs):
+        if ftype == 'fof':
+            # if it is a folder of folders get all files for each folder
+            fnameList = t_fnameList[i]
+        else:
+            fnameList = t_fnameList
+
         for fname in fnameList:
-            if not os.path.isdir(fname) and "B1" in fname:
-                count += 1
-                try:
-                    Binner = BiaxDataBinner()
-                    format = Binner._BuildReadFormat(fname)
-                    outputFolder = os.path.join(outputTopDir,sub)
-                    outputDict = Binner._RunBiaxBinData(fullSubDir,
-                                    outputFolder,
-                                    fname,output=False,readformat=format,
-                                            clusterWidth=[0.001, 0.005])
-                    if "1_1" in fname:
-                        a = plotter(outputDict)
-                        a._plot(title=fname.split(".")[0])
-                except Exception as e:
-                    print("Exception in {0} for sample {1}".format(fname,sub))
-                    print(e)
-                    continue
+            try:
+                # set the filename out to be an empty string,
+                # and only change it if asked to
+                # save the output... ie save_output=True
+                if save_output:
+                    fnameOut = _BuildOutputFileNames(outputTopDir, sub,
+                                                                fname, ftype)
+                else:
+                    fnameOut = ""
+
+                Binner = BiaxDataBinner()
+                format = Binner._BuildReadFormat(fname)
+                fullFileName = os.path.join(sub,fname)
+                outputDict = Binner._RunBiaxBinData(fullFileName,
+                                                    readformat=format,
+                                            clusterWidth=clusterParams,
+                                            fullfnameOut=fnameOut)
+                if visualize:
+                    a = plotter(outputDict)
+                    a._plot(title=fname.split(".")[0])
+
+            except Exception as e:
+                print("Exception in {0} for sample {1}".format(fname,sub))
+                print(e)
+                continue
 
 if __name__ == "__main__":
 
     import argparse
 
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(prog='BinBiaxData', description="""
+                                        This is a command line based
+                                        program that can be used to bin biaxial
+                                        data that has been analyzed previously.
+                                        Example usage: python BinBiaxData.py
+                                        -f <path to file> -t 0.001 -m 0.01 -v""")
+
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('-fo','--folder',help="Enter an entire folder to have the data binned")
-    group.add_argument('-f','--file',help="Enter a single file to have the data binned")
+    group.add_argument('-fof','--folder_of_folders',
+                        help="""Enter a folder of folders to have the data
+                                binned""")
+    group.add_argument('-fo','--folder',
+                        help="Enter an entire folder to have the data binned")
+    group.add_argument('-f','--file',
+                            help="Enter a single file to have the data binned")
+    parser.add_argument('-t','--threshold',default=0.001,type=float,
+                        help="""maximum distance between points that includes
+                                points in a cluster, if exceded a new cluster
+                                is created""")
+    parser.add_argument('-m','--maximum',default=0.01,type=float,
+                        help="""maximum distance that the first point in a
+                                cluster and the nth point in a cluster are
+                                considered to be contained within the cluster
+                                """)
+    parser.add_argument('-v','--visualize',action='store_true',help="""
+                                    pass this argument to visualize the data
+                                    it will visualize each plot so it is
+                                    best used with individual files or one
+                                    folder of data, not folder of folders""")
+    parser.add_argument('-s','--save',action='store_true',
+                        help="""pass this argument to save the binned data""")
+    # parser.add_argument('-h','--help', )
 
     args = parser.parse_args()
-    if args.folder:
+    if args.folder_of_folders:
+        f = args.folder_of_folders
+        ftype = 'fof'
+    elif args.folder:
         f = args.folder
+        ftype = 'fo'
     else:
         f = args.file
+        ftype = 'f'
 
-    main(f)
+    main(f,ftype,clusterParams=[args.threshold, args.maximum],
+                    visualize=args.visualize, save_output=args.save)
