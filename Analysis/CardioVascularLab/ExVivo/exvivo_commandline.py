@@ -81,4 +81,3 @@ class mainFunc:
         if 'Stiffness' in outputs:
             outputList.append(props.stiffness)
         if 'StartElbow' in outputs:
-            
