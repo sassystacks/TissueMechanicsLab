@@ -59,10 +59,6 @@ class getproperties(object):
 
         self.calcStress(force, width, thickness, displacement, initialLength)
 
-        # truncate data then normalize
-        self.strain, self.stress = self.truncData(self.strain,self.stress)
-
-        self.stress, self.strain = self._normalizeData(self.stress, self.strain)
 
         # use moving average to smooth data
         self.stress = self.applySavgol(self.stress)
@@ -94,6 +90,15 @@ class getproperties(object):
 
         # get the failure point and set as the strength
         self.strength = self.stress[self.failIndx]
+
+        #find maximum
+        self.maxInd = self._findMax(self.stress, index=10)
+
+        # truncate data
+        # self.strain, self.stress = self.truncData(self.strain, self.stress, self.maxInd)
+
+        #normalize
+        self.stress, self.strain = self._normalizeData(self.stress, self.strain, self.maxInd)
 
         # Use the Ramer-Douglas-Peucker Algorithm to create a linear representaiton
         # self.rdpOutput = self.testRDP(self.stress[:self.failIndx], .1)
@@ -242,21 +247,31 @@ class getproperties(object):
         else:
             print("What the fuck are you doing.... (engineering or stretch)")
 
+    def _findMax(self, data, index):
 
-    def _normalizeData(self, ydata, xdata):
+        currVal = data[index]
+        nextVal = data[index + 1]
+
+        while currVal < nextVal:
+            index += 1
+
+            currVal = data[index]
+            nextVal = data[index + 1]
+
+            maxInd = index
+
+        return maxInd
+
+    def _normalizeData(self, ydata, xdata,ind):
         '''
-        This intakes 2 numpy arrays and normalizes them.
-        returns:
-            numpy arrays
+        This function identifies index at max stress and then truncates the data
+        at this value and normalizes x and y data between 0 and 1.
+        Inputs: numpy arrays (x and y) and starting index.
+        Returns: normalized data (as 2 separate arrays)
         '''
 
-        #maxInd = self._findMax(ydata, 10)
-
-        #xdata = xdata[:maxInd]
-        #ydata = ydata[:maxInd]
-
-        x_norm = (xdata - np.min(xdata)) / (np.max(xdata) - np.min(xdata))
-        y_norm = (ydata - np.min(ydata)) / (np.max(ydata) - np.min(ydata))
+        x_norm = (xdata - np.min(xdata[:ind])) / (np.max(xdata[:ind]) - np.min(xdata[:ind]))
+        y_norm = (ydata - np.min(ydata[:ind])) / (np.max(ydata[:ind]) - np.min(ydata[:ind]))
 
         return y_norm, x_norm
 
@@ -449,12 +464,13 @@ class getproperties(object):
         ret[n:] = ret[n:] - ret[:-n]
         return ret[n - 1:] / n
 
-    def truncData(self, xdata, ydata):
+    def truncData(self, xdata, ydata, index):
         # Truncate the data based on the maximum value in ydata
 
-        maxindx = np.argmax(ydata)
-        xTrunc = xdata[:maxindx-1]
-        yTrunc = ydata[:maxindx-1]
+
+        xTrunc = xdata[:(index+1)]
+        yTrunc = ydata[:(index+1)]
+
         return xTrunc, yTrunc
 
     def get_closest(self, data, val):
@@ -483,7 +499,7 @@ class getproperties(object):
 
     def manual_max(self, xdata, ydata, xvals=[], yvals=[]):
         # finds the maximum value in an array from a larger data set given 2 indices
-        # to mark the beginnning and end of a range
+        # to mark the beginning and end of a range
 
         # Call class method sort_data to return the data set from minimum to
         # maximum values
