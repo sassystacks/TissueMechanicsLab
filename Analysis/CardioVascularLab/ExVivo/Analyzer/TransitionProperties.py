@@ -10,11 +10,12 @@ inputs:
 '''
 class ProcessTransitionProperties:
 
-    def __init__(self, stress_strain=np.array([]), identifier='', eps=0.01):
+    def __init__(self, stress_strain=np.array([]), stress_strain_norm=np.array([]), identifier='', eps=0.01):
 
         # send in the data as a n x 2 numpy array
         self.eps = eps
         self.stress_strain = stress_strain
+        self.stress_strain_norm = stress_strain_norm
 
         self.identifier = identifier
 
@@ -31,18 +32,20 @@ class ProcessTransitionProperties:
         # run the RDP algorithm on the normalized data
 
 
-    def _setStressStrain(self,array):
+    def _setStressStrain(self,array1,array2):
 
         if array.shape[1] == 2:
-            self.stress_strain = array
+            self.stress_strain = array1
+            self.stress_strain_norm = array2
         else:
             print("The stress strain data must be a 2 dimensional numpy array")
 
     def _runTransitionProps(self):
         if self.stress_strain.size:
-            self.rdp = rdp(self.stress_strain,epsilon=self.eps)
+            self.rdp_norm = rdp(self.stress_strain_norm,epsilon=self.eps) #
             # Filter it to remove lines that are artifacts of the test
             self._filterRDP()
+            #self.rdp = InvNorm(self.rdp_norm) # function to write
             self._setAllValues()
         else:
             self.rdp = np.array([])

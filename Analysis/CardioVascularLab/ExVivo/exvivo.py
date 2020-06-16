@@ -337,7 +337,10 @@ class StartPage:
         stress_strain = np.stack((self.props.strain[:self.props.failIndx],
                                     self.props.stress[:self.props.failIndx]),
                                     axis=-1)
-        self.transitionProps._setStressStrain(stress_strain)
+        stress_strain_norm = np.stack((self.props.strain_norm[:self.props.failIndx],
+                                    self.props.stress_norm[:self.props.failIndx]),
+                                    axis=-1)
+        self.transitionProps._setStressStrain(stress_strain,stress_strain_norm)
         self.transitionProps._runTransitionProps()
         propDict = self.transitionProps._outputAllValues()
         propDict['MaxStrain_'] = self.props.strain[self.props.failIndx]

@@ -98,7 +98,7 @@ class getproperties(object):
         # self.strain, self.stress = self.truncData(self.strain, self.stress, self.maxInd)
 
         #normalize
-        self.stress, self.strain = self._normalizeData(self.stress, self.strain, self.maxInd)
+        self.stress_norm, self.strain_norm = self._normalizeData(self.stress, self.strain, self.failIndx)
 
         # Use the Ramer-Douglas-Peucker Algorithm to create a linear representaiton
         # self.rdpOutput = self.testRDP(self.stress[:self.failIndx], .1)
