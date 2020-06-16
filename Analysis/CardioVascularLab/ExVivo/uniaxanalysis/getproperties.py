@@ -264,8 +264,7 @@ class getproperties(object):
 
     def _normalizeData(self, ydata, xdata,ind):
         '''
-        This function identifies index at max stress and then truncates the data
-        at this value and normalizes x and y data between 0 and 1.
+        This function normalizes x and y data between 0 and 1.
         Inputs: numpy arrays (x and y) and starting index.
         Returns: normalized data (as 2 separate arrays)
         '''

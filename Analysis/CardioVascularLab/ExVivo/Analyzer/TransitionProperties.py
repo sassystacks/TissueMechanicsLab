@@ -141,7 +141,7 @@ class ProcessTransitionProperties:
     def _setTransitionStressStrainEnd(self):
         # Stress at the end of the non linear portion of curve.
         # if there are more than 3 lines desribing the curve, this is the stress
-        # that is at the begninning of the mtm high
+        # that is at the beginning of the mtm high
 
         self.transition_stress_strain_end = \
                                 self.stress_strain[self.transition_index_end]
@@ -189,6 +189,7 @@ class ProcessTransitionProperties:
         subIndex = np.argmax(pointDistances)
 
         fullIndex = index + subIndex
+
 
         return self.stress_strain[fullIndex]
 
