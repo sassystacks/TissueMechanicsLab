@@ -52,7 +52,7 @@ class StartPage:
         self.master = master
         self.buttonsdict = {}
         self.fig = plt.figure(1)
-        self.transitionProps = ProcessTransitionProperties(eps=0.008)
+        self.transitionProps = ProcessTransitionProperties(eps=0.025)
         self.plotter = DataPlotter()
 
 
@@ -61,12 +61,11 @@ class StartPage:
         self.specimenHeaders = ["Sample", "Zone", "Region", "Specimen", "Direction"]
         self.dimensionHeaders = ["Width","Thickness","Length"]
 
-        self.headersOut = ["Sample", "Zone", "Region", "Specimen", "Direction",
-                            "PointID","Strength","Stiffness"]
+        self.headersOut = ["Sample", "Zone", "Region", "Specimen", "Direction", "PointID","Strength","Stiffness"]
 
         # this is the format of file so
-        self.fileform = ["Sample", "_", "Zone", "Region","Specimen", "Direction"] #AAA data
-        # self.fileform = ["Sample", "_","Z", "Zone", "Region","Specimen", "_","Direction"] #NIH BAV data
+        # self.fileform = ["Sample", "_", "Zone", "Region","Specimen", "Direction"] #AAA data
+        self.fileform = ["Sample", "_","Z", "Zone", "Region","Specimen", "_","Direction"] #NIH BAV data
 
 
 
@@ -338,7 +337,10 @@ class StartPage:
         stress_strain = np.stack((self.props.strain[:self.props.failIndx],
                                     self.props.stress[:self.props.failIndx]),
                                     axis=-1)
-        self.transitionProps._setStressStrain(stress_strain)
+        stress_strain_norm = np.stack((self.props.strain_norm[:self.props.failIndx],
+                                    self.props.stress_norm[:self.props.failIndx]),
+                                    axis=-1)
+        self.transitionProps._setStressStrain(stress_strain,stress_strain_norm)
         self.transitionProps._runTransitionProps()
         propDict = self.transitionProps._outputAllValues()
         propDict['MaxStrain_'] = self.props.strain[self.props.failIndx]

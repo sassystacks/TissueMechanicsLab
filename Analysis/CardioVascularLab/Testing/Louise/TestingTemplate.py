@@ -17,17 +17,25 @@ You will need to do the rest of the imports for these comments below, then
 work on the class Test. Use the comments below as a roadmap for the imports.
 '''
 # class for tests
-# visualization
-# importing data
+
+# Visualization
+from uniaxanalysis.plotdata import DataPlotter
+from matplotlib import pyplot as plt
+
+import time
+
+# Import Data
+# from Data.DataStructure import ExvivoData (this line will be included when DataStructure.py is complete
+from uniaxanalysis.parsecsv import parsecsv
+
 # Process Data into stress and strain
+from uniaxanalysis.getproperties import getproperties
+
 # Analyze Properties
+# from Analyzer.DataFilter import ProcessTransitionProperties
+
 class Test:
     def __init__(self):
         pass
 
 
-
-    # import data
-    # Process Data into stress and strain
-    # Test New Function
-    # visualize
