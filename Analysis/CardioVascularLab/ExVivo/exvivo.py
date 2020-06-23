@@ -52,7 +52,7 @@ class StartPage:
         self.master = master
         self.buttonsdict = {}
         self.fig = plt.figure(1)
-        self.transitionProps = ProcessTransitionProperties(eps=0.03)
+        self.transitionProps = ProcessTransitionProperties(eps=0.025)
         self.plotter = DataPlotter()
 
 

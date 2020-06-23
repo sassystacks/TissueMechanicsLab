@@ -34,18 +34,42 @@ class ProcessTransitionProperties:
 
     def _setStressStrain(self,array1,array2):
 
-        if array.shape[1] == 2:
+        if array1.shape[1] == 2 and array2.shape[1] == 2:
             self.stress_strain = array1
             self.stress_strain_norm = array2
         else:
             print("The stress strain data must be a 2 dimensional numpy array")
 
+    def _invNorm(self, array_norm, array_orig):
+        #separate arrays into X and Y components
+        x_unzip1, y_unzip1 = map(list,zip(*array_norm))
+        x_unzip, y_unzip = map(list,zip(*array_orig))
+
+
+        xdata = np.array(x_unzip)
+        ydata = np.array(y_unzip)
+
+        x_norm = np.array(x_unzip1)
+        y_norm = np.array(y_unzip1)
+
+
+        #unnormalize data
+        x_inv = x_norm * (np.max(xdata) - np.min(xdata)) + np.min(xdata)
+        y_inv = y_norm * (np.max(ydata) - np.min(ydata)) + np.min(ydata)
+
+        # combine arrays together
+        unscaledArray = np.stack((x_inv, y_inv), axis = -1)
+
+        return unscaledArray
+
     def _runTransitionProps(self):
         if self.stress_strain.size:
             self.rdp_norm = rdp(self.stress_strain_norm,epsilon=self.eps) #
+            self.rdp = self._invNorm(self.rdp_norm, self.stress_strain)
+
             # Filter it to remove lines that are artifacts of the test
             self._filterRDP()
-            #self.rdp = InvNorm(self.rdp_norm) # function to write
+
             self._setAllValues()
         else:
             self.rdp = np.array([])
@@ -119,7 +143,10 @@ class ProcessTransitionProperties:
                 self._getIndexAtPoint(self.stress_strain[...,[0]],p[0])[0][0]
 
     def _getIndexAtPoint(self,data,value):
-        return  np.where(data == value)
+        data_round = np.around(data, 3)
+        value = round(value, 3)
+
+        return  np.where(data_round == value)
 
     def _slopeFrom2Points(self,p1,p2):
         slope = 0

@@ -3,6 +3,7 @@ import sys
 sys.path.append('../../ExVivo')
 
 import pandas as pd
+from sklearn import preprocessing
 import numpy as np
 from matplotlib import pyplot as plt
 from math import sqrt
@@ -49,15 +50,20 @@ def _normalizeData(ydata, xdata):
 
     maxInd = _findMax(ydata,10)
 
-    xdata = xdata[:maxInd]
-    ydata = ydata[:maxInd]
-
-
-    x_norm = (xdata - np.min(xdata))/(np.max(xdata)-np.min(xdata))
-    y_norm = (ydata - np.min(ydata))/(np.max(ydata)-np.min(ydata))
+    x_norm = (xdata - np.min(xdata[:maxInd]))/(np.max(xdata[:maxInd])-np.min(xdata[:maxInd]))
+    y_norm = (ydata - np.min(ydata[:maxInd]))/(np.max(ydata[:maxInd])-np.min(ydata[:maxInd]))
 
 
     return y_norm, x_norm
+
+def _inverseNorm(ydata, xdata, y_norm, x_norm):
+
+    maxInd = _findMax(ydata,10)
+
+    x_inv = x_norm*(np.max(xdata[:maxInd])-np.min(xdata[:maxInd]))+np.min(xdata[:maxInd])
+    y_inv = y_norm*(np.max(ydata[:maxInd])-np.min(ydata[:maxInd]))+np.min(ydata[:maxInd])
+
+    return y_inv, x_inv
 
 
 # How the X_data Y_data will look once its in the data structure format
@@ -85,12 +91,17 @@ stress_trunc = stress[:maxInd]
 strain_trunc = strain[:maxInd]
 
 #Plot unprocessed stress v. strain
-plt.plot(strain_trunc,stress_trunc, color = 'Blue', linestyle = 'dashed')
+plt.plot(strain,stress, color = 'Blue', linestyle = 'dashed')
 plt.xlabel('Strain')
 plt.ylabel('Stress')
 plt.title('Test Data')
 
-'''
+#Plot RDP curve (ORIG DATA)
+data = list(zip(strain, stress))
+rdp_curve = rdp.rdp(data, 0.02)
+rdpx, rdpy = map(list,zip(*rdp_curve))
+plt.plot(rdpx, rdpy, color = "Red")
+
 #Normalize Data and Plot
 stress_norm, strain_norm = _normalizeData(stress, strain)
 plt.plot(strain_norm, stress_norm, color = 'Blue')
@@ -103,12 +114,12 @@ norm_data = list(zip(strain_norm, stress_norm))
 norm_rdp_curve = rdp.rdp(norm_data, 0.02)
 norm_rdpx, norm_rdpy = map(list,zip(*norm_rdp_curve))
 plt.plot(norm_rdpx, norm_rdpy, color = "Red")
-'''
-#Plot RDP curve (ORIG DATA)
-data = list(zip(strain_trunc, stress_trunc))
-rdp_curve = rdp.rdp(data, 0.02)
-rdpx, rdpy = map(list,zip(*rdp_curve))
-plt.plot(rdpx, rdpy, color = "Red")
+
+#Plot un-normalized data
+stress_norm, strain_norm = _normalizeData(stress, strain)
+stress_inv, strain_inv = _inverseNorm(stress, strain, stress_norm, strain_norm)
+plt.plot(strain_inv, stress_inv, color = 'Yellow')
+
 
 
 plt.show()

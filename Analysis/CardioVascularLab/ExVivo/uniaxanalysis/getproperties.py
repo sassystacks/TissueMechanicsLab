@@ -92,7 +92,7 @@ class getproperties(object):
         self.strength = self.stress[self.failIndx]
 
         #find maximum
-        self.maxInd = self._findMax(self.stress, index=10)
+        #self.maxInd = self._findMax(self.stress, index=10)
 
         # truncate data
         # self.strain, self.stress = self.truncData(self.strain, self.stress, self.maxInd)
