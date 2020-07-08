@@ -7,10 +7,12 @@ output from the TransitionProperties class.
 
 class Frame_7(tk.Frame):
 
-    def __init__(self,master,cls,defaultState=0):
+    def __init__(self,master, tab, tab_no, cls, defaultState=0):
+
         tk.Frame.__init__(self, master)
         self.master = master
-
+        self.tab = tab
+        self.tab_no = tab_no
         self.plotter = cls
 
         self.title = "Output Properties"

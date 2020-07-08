@@ -3,7 +3,7 @@ sys.path.append('..')
 
 import tkinter as tk
 from tkinter import ttk, filedialog
-
+# from exvivoframes.Frame2 import Frame_2
 '''
 This frame contains all the folder selection and data parsing functions.
 '''
@@ -21,21 +21,22 @@ class Frame_1(tk.Frame):
         self.dirname = '/Volumes/Biomechanics_LabShare/NIH_BAV_Project/NIH_BAV_Data/Uniaxial\ Data/FAIL'
 
         #Make Buttons
-        label = ttk.Label(self.tab, text="Start").grid(row=0, column=0)
+        label = ttk.Label(self.tab, text="Start").grid(sticky = "W")
 
         button2 = ttk.Button(self.tab, text="Top Directory",
                          command=self.chooseDir)
-        button2.grid(row=2, column=0)
+        button2.grid(sticky = 'W')
 
         #Separate Functions for Tabs
         if self.tab_no == 1: # UNIAX TAB
             button1 = ttk.Button(self.tab, text="Dimensions File",
                              command=self.chooseDims)
-            button1.grid(row=1, column=0)
+            button1.grid(sticky = 'W')
 
             button3 = ttk.Button(self.tab, text="Run SetupData",
                              command=self.setupData_uniax)
-            button3.grid(row=3, column=0)
+            button3.grid(sticky = 'W')
+
         elif self.tab_no == 2:#BIAX TAB
 
             self.OPTIONS = ["2PK Strain","1PK Stretch","Cauchy Strain"]
@@ -44,7 +45,7 @@ class Frame_1(tk.Frame):
 
             w = ttk.OptionMenu(self.tab, variable, *self.OPTIONS).grid(row=1,column=0)
 
-            button1 = ttk.Button(self.tab, text="ok", command=self.set_type(variable))
+            button1 = ttk.Button(self.tab, text="OK", command=self.set_type(variable))
             button1.grid(row=1,column=1)
 
             button3 = ttk.Button(self.tab, text="Run SetupData",
@@ -85,7 +86,7 @@ class Frame_1(tk.Frame):
 
             # Dictionary to pass to parsecsv for obtaining data on specimen
             args_dict = {
-                'dimsfile': self.dims_fname,
+                'dimsfile': self.dim_fname,
                 'topdir': self.dirname,
                 'timestep': 0.05,
                 'headersOut': self.headersOut,
@@ -103,7 +104,7 @@ class Frame_1(tk.Frame):
                                                     self.csvDataParser.topDir)
 
 
-            #self.addButtons()
+
         else:
             print("please get a directory and a dimensions file for the analysis")
 

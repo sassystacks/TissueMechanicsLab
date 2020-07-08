@@ -6,7 +6,7 @@ class Frame_8(tk.Frame):
     change the fit of the rdp algorithm to the data.
     '''
 
-    def __init__(self, master, transitionclass, defaultVal="0.01"):
+    def __init__(self, master, tab, tab_no, transitionclass, defaultVal="0.01"):
         tk.Frame.__init__(self,master)
 
         self.master = master

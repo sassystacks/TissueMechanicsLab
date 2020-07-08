@@ -3,9 +3,12 @@ from PIL import ImageTk, Image
 
 class Frame_6(tk.Frame):
 
-    def __init__(self,master):
+    def __init__(self,master, tab, tab_no):
+
         tk.Frame.__init__(self, master)
         self.master = master
+        self.tab = tab
+        self.tab_no = tab_no
         self.canvas = tk.Canvas(self.master)
         self.button = tk.Button(self.canvas,text='')
         self.imageFname = "exvivoframes/noun_Major Axis_409453.png"

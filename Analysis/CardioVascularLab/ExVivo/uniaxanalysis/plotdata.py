@@ -185,7 +185,7 @@ class DataPlotter:
         else:
             print('Clicked ouside axes bounds but inside plot window')
 
-    def plot_graph(self, frame1, frame2, Row=1, Col=1):
+    def plot_graph(self, frame1, Row=1, Col=1):
         # import matplotlib as mpl
         # mpl.use("TkAgg")
         # this method builds the canvas for the plot and the navigation toolbar
