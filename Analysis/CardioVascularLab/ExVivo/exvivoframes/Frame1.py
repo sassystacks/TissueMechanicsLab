@@ -16,6 +16,7 @@ class Frame_1(tk.Frame):
         self.tab_no = tab_no
         self.ftype = '4Dots_Strain_2PK_1_1.txt'
 
+        self.sampleList = []
         # Dimensions and Directory Path
         self.dim_fname = '/Volumes/Biomechanics_LabShare/NIH_BAV_Project/NIH_BAV_Data/Uniaxial\ Data/NIH_Dimensions.csv'
         self.dirname = '/Volumes/Biomechanics_LabShare/NIH_BAV_Project/NIH_BAV_Data/Uniaxial\ Data/FAIL'

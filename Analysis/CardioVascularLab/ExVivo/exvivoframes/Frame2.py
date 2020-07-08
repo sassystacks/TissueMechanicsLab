@@ -26,6 +26,8 @@ class Frame_2(tk.Frame):
         self.tab = tab
         self.tab_no = tab_no
 
+        self.sampleList = []
+        
         self.buttonCanvas = Canvas(self.master)
         self.xButtonScroller = Scrollbar(self.master, orient="horizontal",
                                              command=self.buttonCanvas.xview)
@@ -81,5 +83,3 @@ class Frame_2(tk.Frame):
     def onFrameConfigure(self, event):
         '''Reset the scroll region to encompass the inner frame'''
         self.buttonCanvas.configure(scrollregion=self.buttonCanvas.bbox("all"))
-
-

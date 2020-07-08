@@ -11,6 +11,8 @@ from uniaxanalysis.plotdata import DataPlotter
 from uniaxanalysis.saveproperties import write_props_csv
 from exvivoframes import *
 
+from Data.DataInterface import DataInterfacer
+
 
 from matplotlib import pyplot as plt
 
@@ -25,7 +27,17 @@ class Widgets:
         self.tab2 = tab2
         self.plotter = DataPlotter()
 
-        border = 3
+        self.DataInterface = DataInterfacer()
+
+        self._BuildTabs()
+        self._SharedSamplelist()
+
+    def _SharedSamplelist(self):
+        self.DataInterface.classList = [self.frame1_t1,self.frame2_t1]
+        self.DataInterface.sampleList = self.frame1_t1.sampleList
+        self.DataInterface._SetSampleList()
+
+    def _BuildTabs(self, border=3):
 
         '''
         #~~~~~~~~~~~~~~~~~~~~~~~~~ Build Tab 1 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
