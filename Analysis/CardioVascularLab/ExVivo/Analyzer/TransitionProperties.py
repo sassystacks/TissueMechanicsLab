@@ -102,8 +102,9 @@ class ProcessTransitionProperties:
         return outputDict
 
     def _setAllValues(self):
-
+        #print(self.rdp)
         self._setMaxStress()
+        self._setRDP()
         if self.rdp.any():
             self._setTransitionIndexStart(self.rdp[1])
             self._setMTMLow(self.rdp[0],self.rdp[1])
@@ -123,6 +124,7 @@ class ProcessTransitionProperties:
                 self.elbow = True
 
             if len(self.rdp) < 4: # clear transition stress and strain for no elbow
+                #print(self.transition_stress_strain_end)
                 empty = np.empty(self.transition_stress_strain_end.size)
                 empty[:]=np.NaN
                 self.transition_stress_strain_end = empty
@@ -164,6 +166,8 @@ class ProcessTransitionProperties:
         # from the the last line segment and a line segment is fit to that point.
         self.mtm_high = self._slopeFrom2Points(p1,p2)
 
+    def _setRDP(self):
+        self.RDP = self.rdp
     # def _setElbow(self):
     #     #If there is an elbow set as true
     #     self.elbow = True
@@ -222,6 +226,13 @@ class ProcessTransitionProperties:
 
 
         return self.stress_strain[fullIndex]
+
+    def _fitLineForMTM(self):
+
+        self.LTM_line = np.concatenate((self.rdp[0], self.rdp[1]), axis = 0)
+        self.HTM_line = np.concatenate((self.rdp[-2], self.rdp[-1]), axis = 0)
+
+        return self.LTM_line, self.HTM_line
 
     def _filterRDP(self):
 
