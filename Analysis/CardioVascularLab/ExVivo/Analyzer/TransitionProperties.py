@@ -1,7 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from rdp import rdp
-
 '''
 this class is used in conjunction with the rdp algorithm where the values
 from the rdp are used to identify specific points in the graph.
@@ -10,8 +9,9 @@ inputs:
 '''
 class ProcessTransitionProperties:
 
-    def __init__(self, stress_strain=np.array([]), stress_strain_norm=np.array([]), identifier='', eps=0.01):
+    def __init__(self, tab_no, stress_strain=np.array([]), stress_strain_norm=np.array([]), identifier='', eps=0.01):
 
+        self.tab_no = tab_no
         # send in the data as a n x 2 numpy array
         self.eps = eps
         self.stress_strain = stress_strain
@@ -28,7 +28,9 @@ class ProcessTransitionProperties:
         self.transition_stress_strain_end = [None,None]
         self.max_stress = None
         self.max_stress_indx = None
-        self._runTransitionProps()
+        self.elbow = None
+        self.runTransitionProps()
+
         # run the RDP algorithm on the normalized data
 
 
@@ -53,7 +55,7 @@ class ProcessTransitionProperties:
         y_norm = np.array(y_unzip1)
 
 
-        #unnormalize data
+        # unnormalize data
         x_inv = x_norm * (np.max(xdata) - np.min(xdata)) + np.min(xdata)
         y_inv = y_norm * (np.max(ydata) - np.min(ydata)) + np.min(ydata)
 
@@ -62,24 +64,21 @@ class ProcessTransitionProperties:
 
         return unscaledArray
 
-    def _runTransitionProps(self):
+    def runTransitionProps(self):
+        # uniax vs biax tab
         if self.stress_strain.size:
-            self.rdp_norm = rdp(self.stress_strain_norm,epsilon=self.eps) #
+            self.rdp_norm = rdp(self.stress_strain_norm,epsilon=self.eps)
             self.rdp = self._invNorm(self.rdp_norm, self.stress_strain)
 
             # Filter it to remove lines that are artifacts of the test
             self._filterRDP()
 
-            self._setAllValues()
+            self.setAllValues()
         else:
             self.rdp = np.array([])
 
-    def _normalizeData(self):
 
-        if self.stress_strain.size:
-            pass
-
-    def _outputAllValues(self,outputDict=None):
+    def outputAllValues(self,outputDict=None):
 
         # This is to check if there was a dictionary input to append the values
         # to. If there wasn't then create a new one.
@@ -87,7 +86,7 @@ class ProcessTransitionProperties:
             outputDict = {}
 
         outputDict['MTMLow_' + self.identifier] = self.mtm_low
-        outputDict['MTMhigh_' + self.identifier] = self.mtm_high
+        outputDict['MTMHigh_' + self.identifier] = self.mtm_high
         outputDict['MaxStress_' + self.identifier] = self.max_stress
         outputDict['T_Stress_Start_' + self.identifier] = \
                                         self.transition_stress_strain_start[1]
@@ -101,14 +100,14 @@ class ProcessTransitionProperties:
 
         return outputDict
 
-    def _setAllValues(self):
+    def setAllValues(self):
 
         self._setMaxStress()
         if self.rdp.any():
             self._setTransitionIndexStart(self.rdp[1])
             self._setMTMLow(self.rdp[0],self.rdp[1])
             self.elbow = False
-
+            print(len(self.rdp))
             # Use this to check if the slope of the lines is increasing
 
             if len(self.rdp) > 2:
@@ -153,6 +152,13 @@ class ProcessTransitionProperties:
         if not np.array_equal(p1,p2):
             slope = (p2[1] - p1[1])/(p2[0] - p1[0])
         return slope
+
+    def _HighStiffnessRDP(self, rdpArray):
+        stiffnessArray = self.rdp[-2:, :]
+        p1 = stiffnessArray[0]
+        p2 = stiffnessArray[2]
+        self.stiffness = self._slopeFrom2Points(p1, p2)
+        return self.stiffness
 
     def _setMTMLow(self,p1,p2):
         # This is the first line identified by RDP algorithm
@@ -207,6 +213,13 @@ class ProcessTransitionProperties:
             else:
                 ax.scatter(data[0],data[1])
         plt.show()
+
+    def _fitLineForMTM(self):
+
+        self.LTM_line = np.concatenate((self.rdp[0], self.rdp[1]), axis = 0)
+        self.HTM_line = np.concatenate((self.rdp[-2], self.rdp[-1]), axis = 0)
+
+        return self.LTM_line, self.HTM_line
 
     def _fitLineForMTMHigh(self,p1,p2):
 

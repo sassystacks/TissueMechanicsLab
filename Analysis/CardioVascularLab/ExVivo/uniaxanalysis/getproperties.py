@@ -21,6 +21,7 @@ from matplotlib import pyplot as plt
 import pandas as pd
 import numpy as np
 import uniaxanalysis.parsecsv  # homemade module
+from Data.DataInterface import DataInterfacer
 from scipy import signal
 
 
@@ -91,17 +92,13 @@ class getproperties(object):
         # get the failure point and set as the strength
         self.strength = self.stress[self.failIndx]
 
-        #find maximum
-        #self.maxInd = self._findMax(self.stress, index=10)
-
-        # truncate data
-        # self.strain, self.stress = self.truncData(self.strain, self.stress, self.maxInd)
-
-        #normalize
+        # normalize
         self.stress_norm, self.strain_norm = self._normalizeData(self.stress, self.strain, self.failIndx)
 
-        # Use the Ramer-Douglas-Peucker Algorithm to create a linear representaiton
-        # self.rdpOutput = self.testRDP(self.stress[:self.failIndx], .1)
+        self.dataInt = DataInterfacer()
+
+        self.dataInt.setProps(self.stress, self.strain, self.stiffness, self.strength)
+
 
 
     def testRDP(self,data,eps):

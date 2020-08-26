@@ -14,11 +14,6 @@ class Frame_6(tk.Frame):
         self.imageFname = "exvivoframes/noun_Major Axis_409453.png"
         self.image = None
 
-        self.canvas.pack(fill='both',expand=True)
-        self.button.pack(fill='both',expand=True)
-
-
-        # self.panel.grid(row=0, column=0)
 
     def _OpenAndResizeImage(self):
 

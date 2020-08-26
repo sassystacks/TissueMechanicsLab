@@ -1,4 +1,5 @@
 import tkinter as tk
+
 '''
 This frame contains all the check box properties. The class also maps the
 checkbox to the properties in the dictionary containing them. Dictionary is
@@ -7,13 +8,14 @@ output from the TransitionProperties class.
 
 class Frame_7(tk.Frame):
 
-    def __init__(self,master, tab, tab_no, cls, defaultState=0):
+    def __init__(self, master, tab, tab_no, dataInterface, cls, defaultState=0):
 
         tk.Frame.__init__(self, master)
         self.master = master
         self.tab = tab
         self.tab_no = tab_no
         self.plotter = cls
+        self.dataInt = dataInterface
 
         self.title = "Output Properties"
         self.canvas = tk.Canvas(self.master)
@@ -56,7 +58,15 @@ class Frame_7(tk.Frame):
                            }
         self.checkButtons = {}
 
-        self._CreateCheckButtons()
+        self.dataInt.setPropertyMapandPlotArgs(self.propertyMap, self.propertyPlotArgs)
+
+        # separate functions for tabs
+        if self.tab_no == 1:  # UNIAX TAB
+            self._CreateCheckButtons()
+
+        elif self.tab_no == 2:  # BIAX TAB
+            self._CreateCheckButtons()
+
 
 
     def _CreateCheckButtons(self):
@@ -67,13 +77,14 @@ class Frame_7(tk.Frame):
             self.checkButtons[property] = tk.Checkbutton(
                 self.canvas, text=property,
                 variable=self.properties[property],
-                command=self._SetCheckState,
+                command=self.plotter.SetCheckState,
                 activebackground=self.propertyPlotArgs[property]['tkColor'],
                 anchor='w')
             self.checkButtons[property].grid(row=i,column=0,sticky='we',ipady=20)
+            self.dataInt.setCheckboxProps(self.properties)
 
 
-        self.canvas.grid(row=0,column=0)
+        self.canvas.grid(row=0,column=0, pady = 100)
 
     def _BuildColorCircle(self):
         self.master.update()
@@ -94,26 +105,9 @@ class Frame_7(tk.Frame):
 
             self.canvas.create_oval(x0, y0, x1, y1, fill=color)
 
-    def _SetCheckState(self):
-        '''
-        Callback attached to the check boxes. This runs when a box is checked.
-        Runs through all the boxes and updates the plot
-        '''
 
-        for property in self.properties:
-
-            self.plotter.remove_prop_plot(property)
-
-            if self.properties[property].get():
-
-                self._UpdatePlotter(property)
-
-
-
-    def _UpdatePlotter(self, prop):
-        array = self.propertyMap[prop]
-        self.plotter.plot_prop(prop,array,self.propertyPlotArgs[prop])
 
         # val = np.vectorize(self.propertyMap.get)(array)
         # print(val)
         # self.plotter.plot_prop(prop,val)
+

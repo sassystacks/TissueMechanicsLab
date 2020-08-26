@@ -1,23 +1,26 @@
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
-
+import tkinter as tk
+from tkinter import *
+from tkinter import messagebox, ttk, filedialog
 import numpy as np
+from Data.DataInterface import DataInterfacer
 
 class DataPlotter:
-    def __init__(self, cls=None, sampleName="No Name", props={}):
-
+    def __init__(self, dataInterface, tab_no, cls=None, sampleName ='No Name'):
         # create a class variable that is the class passed to the funciton
         self.cls = cls
         self.sampleName = sampleName
-
-        self.props = props
+        self.dataInt = dataInterface
+        self.TransitionProps = self.dataInt.transitionProps
         self.activePropPlot = {}
+        self.master = self.dataInt.master
+        self.tab_no = tab_no
 
         # Create a blank plot
         self.fig = plt.figure(1)
         self.ax = self.fig.add_subplot(111)  # create an axis over the subplot
         self.range, = self.ax.plot([0], [0])
-
 
         if self.cls:
             self.setVars()
@@ -79,8 +82,10 @@ class DataPlotter:
         self.xs = list(self.range.get_xdata())
         self.ys = list(self.range.get_ydata())
 
-    def setClass(self,cls):
+    def setClass(self, cls, master):
         self.cls = cls
+        self.master = master
+        DataPlotter.master = self.master
 
         self.setVars()
 
@@ -100,8 +105,8 @@ class DataPlotter:
         self.linearRegion.set_data([x], [y])
         self.linearRegion.figure.canvas.draw()
 
-    def set_props(self,props):
-        self.props = props
+    #def set_props(self,props):
+        #self.props = props
 
     def remove_prop_plot(self, key):
 
@@ -115,33 +120,16 @@ class DataPlotter:
         Function to parse the checkboxes in the GUI and see which props to plot.
         Properties must be 2 d numpy array where array[..,0] is x value
         '''
+
         propMap = np.array(propMap)
-        val = np.vectorize(self.props.get)(propMap)
+        val = np.vectorize(self.dataInt.TransitionPropsDict.get)(propMap)
 
         # if plotparams['plottype'] == 'line':
         self.activePropPlot[key], = self.ax.plot(val[...,0],val[...,1],
                                     color=plotparams['color'],
                                     marker=plotparams['marker'],
                                     linewidth=plotparams['linewidth'],label='Raymer-Douglas-Peucker Fit')
-
-        '''
-        Plot some vertical lines to show where stuff is.... delete after thesis
-        is written.
-        '''
-        # self.ax.vlines(val[...,0][1],min(val[...,1]),max(val[...,1]),
-        #                     color='m',
-        #                     linestyle='--',linewidth=3,label="Transition Start")
-        # self.ax.vlines(val[...,0][-2],min(val[...,1]),max(val[...,1]),
-        #                     linestyle='--',linewidth=3,label="Transition End",
-        #                     color='r')
-        # self.ax.legend(loc='best')
-        # elif plotparams['plottype'] == 'scatter':
-        #     self.activePropPlot[key], = self.ax.scatter(val[...,0],val[...,1])
-
-        # print('In Plotter {0}:{1}'.format(key,val))
-
         self.canvas.draw()
-
 
     def get_fig(self):
         # this function returns a figure for further analysis
@@ -151,7 +139,7 @@ class DataPlotter:
 
         self.ax.set_title(self.sampleName)  # set the title to the current sample
 
-        # These are the titles Muba
+        # titles for axes
         self.ax.set_xlabel('Engineering Strain')
         self.ax.set_ylabel('Cauchy Stress (MPa)')
 
@@ -176,14 +164,29 @@ class DataPlotter:
 
         self.fig.canvas.callbacks.connect('button_press_event', self)
 
+    def SetCheckState(self):
+        '''
+        Callback attached to the check boxes. This runs when a box is checked.
+        Runs through all the boxes and updates the plot
+        '''
+        for property in self.dataInt.CheckboxProps:
 
+            self.remove_prop_plot(property)
+
+            if self.dataInt.CheckboxProps[property].get():
+                self._UpdatePlotter(property)
+
+    def _UpdatePlotter(self, prop):
+
+        array = self.dataInt.propertyMap[prop]
+        self.plot_prop(prop, array, self.dataInt.propertyPlotArgs[prop])
 
     def on_click(self, event):
 
         if event.inaxes is not None:
             print(event.xdata, event.ydata)
         else:
-            print('Clicked ouside axes bounds but inside plot window')
+            print('Clicked outside axes bounds but inside plot window')
 
     def plot_graph(self, frame1, Row=1, Col=1):
         # import matplotlib as mpl
@@ -200,6 +203,7 @@ class DataPlotter:
         # self.nav = None
         # self.nav = NavigationToolbar2Tk(self.canvas, frame2)
         self.canvas.draw()
+        DataPlotter.canvas = self.canvas
 
 '''
  def main(self):
