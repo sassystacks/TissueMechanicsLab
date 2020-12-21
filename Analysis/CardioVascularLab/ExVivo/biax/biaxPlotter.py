@@ -6,7 +6,6 @@ from tkinter import messagebox, ttk, filedialog
 import numpy as np
 from Data.DataInterface import DataInterfacer
 
-import numpy as np
 
 class BiaxPlotter:
     def __init__(self, dataInterface, tab_no, cls=None, sampleName="No Name"):
@@ -18,6 +17,7 @@ class BiaxPlotter:
         self.TransitionProps = self.dataInt.transitionProps
 
         self.activePropPlot = {}
+        self.canvas = {}
 
         #create a blank plot
         self.fig = plt.figure(1)
@@ -173,3 +173,7 @@ class BiaxPlotter:
         array = self.dataInt.propertyMap[prop]
         self.plot_prop(prop, array, self.dataInt.propertyPlotArgs[prop], direction=11)
         self.plot_prop(prop, array, self.dataInt.propertyPlotArgs[prop], direction=22)
+
+    def saveFig(self, sampleName):
+        string = str(sampleName) + '.png'
+        self.fig.savefig(string)

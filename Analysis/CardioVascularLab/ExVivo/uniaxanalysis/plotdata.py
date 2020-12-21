@@ -13,9 +13,10 @@ class DataPlotter:
         self.sampleName = sampleName
         self.dataInt = dataInterface
         self.TransitionProps = self.dataInt.transitionProps
-        self.activePropPlot = {}
-        self.master = self.dataInt.master
         self.tab_no = tab_no
+
+        self.activePropPlot = {}
+        self.canvas = {}
 
         # Create a blank plot
         self.fig = plt.figure(1)
@@ -24,31 +25,6 @@ class DataPlotter:
 
         if self.cls:
             self.setVars()
-
-    def __call__(self, event):
-        # run this when a call to this function is made, by clicking inside the graph
-
-        # check if the mouse click is in
-        if event.inaxes != self.range.axes:
-            return
-
-        # if the length of the points returned by clicking is more than 2,
-        # replace the second click with the newest click
-        if len(self.xs) >= 2 or len(self.ys) >= 2:
-            self.xs[0] = self.xs[1]
-            self.ys[0] = self.ys[1]
-            self.xs[1] = event.xdata
-            self.ys[1] = event.ydata
-
-        # if haven't made 2 clicks just append the data
-        else:
-            self.xs.append(event.xdata)
-            self.ys.append(event.ydata)
-
-        # update the range with the new data
-
-        self.range.set_data(self.xs, self.ys)
-        self.range.figure.canvas.draw()
 
     def __del__(self):
         # destructor to make sure everything is getting destroyed as should be
@@ -89,7 +65,7 @@ class DataPlotter:
 
         self.setVars()
 
-    def setSample(self,sample):
+    def setSample(self, sample):
         self.sampleName = sample
 
     def set_max_point(self, x, y):
@@ -109,19 +85,19 @@ class DataPlotter:
         #self.props = props
 
     def remove_prop_plot(self, key):
-
+        print("remove_prop_plot")
         if key in self.activePropPlot:
             self.activePropPlot[key].remove()
             del self.activePropPlot[key]
             self.canvas.draw()
 
-    def plot_prop(self,key,propMap,plotparams):
+    def plot_prop(self, key, propMap, plotparams):
         '''
         Function to parse the checkboxes in the GUI and see which props to plot.
         Properties must be 2 d numpy array where array[..,0] is x value
         '''
-
         propMap = np.array(propMap)
+
         val = np.vectorize(self.dataInt.TransitionPropsDict.get)(propMap)
 
         # if plotparams['plottype'] == 'line':
@@ -169,15 +145,14 @@ class DataPlotter:
         Callback attached to the check boxes. This runs when a box is checked.
         Runs through all the boxes and updates the plot
         '''
-        for property in self.dataInt.CheckboxProps:
 
+        for property in self.dataInt.CheckboxProps:
             self.remove_prop_plot(property)
 
             if self.dataInt.CheckboxProps[property].get():
                 self._UpdatePlotter(property)
 
     def _UpdatePlotter(self, prop):
-
         array = self.dataInt.propertyMap[prop]
         self.plot_prop(prop, array, self.dataInt.propertyPlotArgs[prop])
 

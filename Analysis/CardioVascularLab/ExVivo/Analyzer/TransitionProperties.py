@@ -67,7 +67,7 @@ class ProcessTransitionProperties:
     def runTransitionProps(self):
         # uniax vs biax tab
         if self.stress_strain.size:
-            self.rdp_norm = rdp(self.stress_strain_norm,epsilon=self.eps)
+            self.rdp_norm = rdp(self.stress_strain_norm, epsilon=self.eps)
             self.rdp = self._invNorm(self.rdp_norm, self.stress_strain)
 
             # Filter it to remove lines that are artifacts of the test
@@ -122,7 +122,8 @@ class ProcessTransitionProperties:
                 self.elbow = True
 
             if len(self.rdp) < 4: # clear transition stress and strain for no elbow
-                empty = np.empty(self.transition_stress_strain_end.size)
+                empty = np.empty(len(self.transition_stress_strain_end))
+                #empty = np.empty(self.transition_stress_strain_end.size)
                 empty[:]=np.NaN
                 self.transition_stress_strain_end = empty
                 self.transition_stress_strain_start = empty
@@ -145,7 +146,7 @@ class ProcessTransitionProperties:
         data_round = np.around(data, 3)
         value = round(value, 3)
 
-        return  np.where(data_round == value)
+        return np.where(data_round == value)
 
     def _slopeFrom2Points(self,p1,p2):
         slope = 0

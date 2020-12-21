@@ -88,10 +88,11 @@ class Frame_1(tk.Frame):
             import uniaxanalysis.parsecsv
 
             # Read in Headers for parsecsv
-            self.specimenHeaders = ["Sample", "Zone", "Region", "Specimen", "Direction"]
+            self.specimenHeaders = ["Sample", "Zone", "Region", "Specimen", "Direction"] #NIH BAV Data
             self.dimensionHeaders = ["Width", "Thickness", "Length"]
             self.headersOut = ["Sample", "Zone", "Region", "Specimen", "Direction", "PointID", "Strength", "Stiffness"]
-            self.fileform = ["Sample", "_", "Z", "Zone", "Region", "Specimen", "_", "Direction"]  # NIH BAV data
+            #self.fileform = ["Sample", "_", "Z", "Zone", "Region", "Specimen", "_", "Direction"]  # NIH BAV data
+            self.fileform = ["Sample", "_", "Zone", "Region", "Specimen", "Direction"] #AAA
 
             # Dictionary to pass to parsecsv for obtaining data on specimen
             args_dict = {

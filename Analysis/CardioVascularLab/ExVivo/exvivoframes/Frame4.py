@@ -33,7 +33,7 @@ class Frame_4(tk.Frame):
         self.plotter = DataPlotter(self.dataInt, self.tab_no)
         self.biaxPlotter = BiaxPlotter(self.dataInt, self.tab_no)
 
-        self.transitionProps = ProcessTransitionProperties(self.tab_no, eps=0.03) #eps 0.025 for uniax, 0.03 for biax
+        self.transitionProps = ProcessTransitionProperties(self.tab_no, eps=0.025) #eps 0.025 for uniax, 0.03 for biax
 
         #separate functions for tabs
         if self.tab_no == 1:  # UNIAX TAB
@@ -50,6 +50,10 @@ class Frame_4(tk.Frame):
                                         command=self.getGraphBiax)
             getGraphButton.grid(row=12, column=2, sticky='SE')
 
+            saveGraphButton = ttk.Button(self.tab, text='Save Graph', width=20,
+                                         command=self.biaxPlotter.saveFig(self.dataInt.sampleName))
+            saveGraphButton.grid(row=13, column=2, sticky=SE)
+
 
     def getTransitionProperties(self):
         '''
@@ -64,6 +68,8 @@ class Frame_4(tk.Frame):
         self.transitionProps._setStressStrain(stress_strain,stress_strain_norm)
         self.transitionProps.runTransitionProps()
         propDict = self.transitionProps.outputAllValues()
+        propDict['Sample'] = self.dataInt.sampleName
+        propDict['Direction'] = None
         propDict['MaxStrain_'] = self.props.strain[self.props.failIndx]
         propDict['StartStrain'] = self.props.strain[0]
         propDict['StartStress'] = self.props.stress[0]
@@ -166,5 +172,3 @@ class Frame_4(tk.Frame):
             print("Couldn't find the file")
 
         canvas = self.plotter.plot_graph(self.master, Row=0, Col=0)
-
-

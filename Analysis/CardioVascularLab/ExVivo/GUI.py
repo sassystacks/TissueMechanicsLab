@@ -78,7 +78,7 @@ class Widgets:
         #TAB1
         self.t_frame4_t1 = ttk.Frame(self.tab1, borderwidth=border, relief='raised')
         self.frame4_t1 = Frame4.Frame_4(self.t_frame4_t1, self.tab1, 1, self.dataInt)
-        self.t_frame4_t1.grid(row=0, column=1, rowspan= 10, sticky='EW', ipady=20)
+        self.t_frame4_t1.grid(row=0, column=1, rowspan=10, sticky='EW', ipady=20)
 
         #TAB2
         self.t_frame4_t2 = ttk.Frame(self.tab2, borderwidth=border, relief='raised')

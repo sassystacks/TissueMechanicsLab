@@ -97,7 +97,7 @@ class parsecsv(object):
         if searchNames:
             return searchNames
         else:
-            print("The CSV file is not formated correctly see the docs for more info")
+            print("The CSV file is not formatted correctly see the docs for more info")
 
     def dataEntry(self, *args):
         # returns the identifier in the test file as a list

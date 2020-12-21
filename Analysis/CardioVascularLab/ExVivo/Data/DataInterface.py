@@ -133,7 +133,7 @@ class DataInterfacer():
         self.ftype = ftype
         DataInterfacer.ftype = self.ftype
 
-    # determines weather binned or unbinned data for biax
+    # determines whether binned or unbinned data for biax
     def setDataTypeBiax(self, dataType):
         self.dataType = dataType
         DataInterfacer.dataType = self.dataType

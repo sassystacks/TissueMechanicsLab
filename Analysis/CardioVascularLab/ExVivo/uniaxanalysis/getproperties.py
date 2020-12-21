@@ -89,6 +89,9 @@ class getproperties(object):
         # get the slope of the line for the stiffness
         self.stiffness = linearCoefficients[0]
 
+        # get the yield point
+        self.YieldStress = self.yieldIndex(self.secondDer,self.strain[:self.failIndx],self.stress[:self.failIndx],self.failIndx)
+
         # get the failure point and set as the strength
         self.strength = self.stress[self.failIndx]
 
@@ -99,7 +102,33 @@ class getproperties(object):
 
         self.dataInt.setProps(self.stress, self.strain, self.stiffness, self.strength)
 
+    def yieldIndex(self, stressder, strain, stress, failIndx):
+        import matplotlib.pyplot as plt
 
+        stressder[stressder>0]=0
+
+        indxArray = signal.argrelextrema(stressder, np.less)
+        stressderNorm = (stressder[:failIndx] - np.min(stressder[:failIndx])) / (np.max(stressder[:failIndx]) - np.min(stressder[:failIndx]))
+        stressderNorm[stressderNorm>0.6]=1
+        stressDerArray = stressderNorm[indxArray]
+
+        if len(stressDerArray)>0:
+            matchIndex = next(x for x, val in enumerate(stressDerArray) if val<1)
+            indxArray=np.array(indxArray)
+            yieldIndex=indxArray[0][matchIndex]
+            YieldArray = stress[indxArray]
+
+            YieldStress = stress[yieldIndex]
+            plt.plot(strain[yieldIndex], stress[yieldIndex], 'rx', label='Yield Point')
+        else:
+            YieldStress = None
+
+        print("YIELD STRESS IS", YieldStress)
+
+        # plt.plot(strain,stressder)
+        # plt.plot(strain[:failIndx], stressderNorm)
+
+        return YieldStress
 
     def testRDP(self,data,eps):
         from .rdp import rdp
@@ -153,7 +182,7 @@ class getproperties(object):
 
         return [index1,index2]
 
-    def stepTillMax(self,data,index):
+    def stepTillMax(self, data, index):
         currentValue = data[index]
         nextValue= data[index+1]
 
@@ -162,7 +191,7 @@ class getproperties(object):
             currentValue = data[index]
             nextValue = data[index + 1]
 
-        return index -1
+        return index - 1
 
     def fitlineToData(self,x,y):
 
@@ -407,7 +436,7 @@ class getproperties(object):
                         print ("The derivate for {} was {} at {} MPa".format(
                             self.sample, np.around(a, 3), stressAtstart))  # print the stress at that point
                         break
-            minimumSlope /= 10  # reduce slope criteria by one order if magnitude if it has not convergedd
+            minimumSlope /= 10  # reduce slope criteria by one order if magnitude if it has not converged
 
         # calculate polynomial
         x_fit = x[minrange:maxrange]
